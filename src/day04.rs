@@ -3,36 +3,34 @@ fn range(s: &str) -> RangeInclusive<u32> {
     let (start, end) = s.split_once('-').unwrap();
     start.parse().unwrap()..=end.parse().unwrap()
 }
+fn parse_ranges(line: &str) -> (RangeInclusive<u32>, RangeInclusive<u32>) {
+    let (a, b) = line.split_once(',').unwrap();
+    (range(a), range(b))
+}
 
 fn part_1(input: &str) -> u32 {
-    let mut count = 0;
-    for l in input.lines() {
-        let (a, b) = l.split_once(',').unwrap();
-        let range_a = range(a);
-        let range_b = range(b);
-        if (range_a.contains(range_b.start()) && range_a.contains(range_b.end()))
-            || (range_b.contains(range_a.start()) && range_b.contains(range_a.end()))
-        {
-            count += 1;
-        }
-    }
-    count
+    input
+        .lines()
+        .map(parse_ranges)
+        .map(|(range_a, range_b)| {
+            let contained = (range_a.contains(range_b.start()) && range_a.contains(range_b.end()))
+                || (range_b.contains(range_a.start()) && range_b.contains(range_a.end()));
+            u32::from(contained)
+        })
+        .sum()
 }
 
 fn part_2(input: &str) -> u32 {
-    let mut count = 0;
-    for l in input.lines() {
-        let (a, b) = l.split_once(',').unwrap();
-        let range_a = range(a);
-        let range_b = range(b);
-        if range_a.contains(range_b.start())
-            || range_a.contains(range_b.end())
-            || range_b.contains(range_a.start())
-        {
-            count += 1;
-        }
-    }
-    count
+    input
+        .lines()
+        .map(parse_ranges)
+        .map(|(range_a, range_b)| {
+            let overlapping = range_a.contains(range_b.start())
+                || range_a.contains(range_b.end())
+                || range_b.contains(range_a.start());
+            u32::from(overlapping)
+        })
+        .sum()
 }
 
 #[cfg(test)]
