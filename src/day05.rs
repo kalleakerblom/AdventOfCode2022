@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 struct Move {
     count: usize,
     from: usize,
@@ -14,6 +16,7 @@ impl Move {
         }
     }
 }
+
 /// Reads "_modified" input files
 fn parse_stacks_and_moves(s: &str) -> (Vec<Vec<u8>>, Vec<Move>) {
     let (stacks, moves) = s.split_once("\n\n").unwrap();
@@ -40,17 +43,14 @@ fn part_1(input: &str) -> String {
 fn part_2(input: &str) -> String {
     let (mut stacks, moves) = parse_stacks_and_moves(input);
     for m in moves {
-        // Yikes Rust, two mut ref is hard
-        let (from, to) = if m.from < m.to {
-            let (a, b) = stacks.split_at_mut(m.to);
-            (&mut a[m.from], &mut b[0])
-        } else {
-            let (a, b) = stacks.split_at_mut(m.from);
-            (&mut b[0], &mut a[m.to])
-        };
+        // Yikes Rust, two mut ref is hard. v2 with slice of cells instead of split_mut
+        let soc = Cell::from_mut(&mut stacks[..]).as_slice_of_cells();
+        let (mut to, mut from) = (soc[m.to].take(), soc[m.from].take());
         let len = from.len();
         to.extend_from_slice(&from[len - m.count..]);
         from.truncate(len - m.count);
+        soc[m.to].set(to);
+        soc[m.from].set(from);
     }
     let ans: Vec<u8> = stacks.iter().map(|s| s.last().unwrap()).cloned().collect();
     String::from_utf8(ans).unwrap()
