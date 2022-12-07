@@ -8,8 +8,7 @@ fn get_dir_map(input: &str) -> HashMap<String, Dir> {
     let mut lines = input.lines().peekable();
     let mut path = Vec::new();
     let mut result = HashMap::new();
-    while lines.peek().is_some() {
-        let next = lines.next().unwrap().trim();
+    while let Some(next) = lines.next() {
         if next == "$ cd .." {
             path.pop();
             continue;
@@ -23,14 +22,14 @@ fn get_dir_map(input: &str) -> HashMap<String, Dir> {
         // read ls printout
         let mut files = Vec::new();
         let mut subdirs = Vec::new();
-        while lines.peek().is_some() && !lines.peek().unwrap().starts_with('$') {
-            let content = lines.next().unwrap().trim();
+        while let Some(content) = lines.peek().filter(|l| !l.starts_with('$')) {
             if let Some(subdir) = content.strip_prefix("dir ") {
                 subdirs.push(subdir.to_string());
             } else {
                 // only care about file size at the moment
                 files.push(content.split_once(' ').unwrap().0.parse().unwrap())
             }
+            lines.next(); //only peeked, need to step to next line
         }
         result.insert(path.join("/"), Dir { files, subdirs });
     }
