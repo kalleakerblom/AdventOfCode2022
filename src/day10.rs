@@ -1,10 +1,6 @@
-enum Ins {
-    Add(i32),
-    Noop,
-}
 struct Cpu<'a> {
     register: i32,
-    until_add: usize,
+    wait: usize,
     to_add: i32,
     instructions: std::str::Lines<'a>,
 }
@@ -14,25 +10,23 @@ impl<'a> Cpu<'a> {
         Self {
             register: 1,
             instructions: i.lines(),
-            until_add: 0,
+            wait: 0,
             to_add: 0,
         }
     }
+
     fn step(&mut self) {
-        if self.until_add == 0 {
-            self.register += self.to_add;
-            match self.instructions.next().unwrap() {
-                "noop" => {
-                    self.until_add = 0;
-                    self.to_add = 0;
-                }
-                addx => {
-                    self.until_add = 1;
-                    self.to_add = addx.trim_start_matches("addx ").parse::<i32>().unwrap();
-                }
+        if self.wait > 0 {
+            self.wait -= 1;
+            return;
+        }
+        self.register += self.to_add;
+        match self.instructions.next().unwrap() {
+            "noop" => self.to_add = 0,
+            addx => {
+                self.wait = 1;
+                self.to_add = addx.trim_start_matches("addx ").parse::<i32>().unwrap();
             }
-        } else {
-            self.until_add -= 1;
         }
     }
 }
@@ -52,6 +46,7 @@ fn part_1(input: &str) -> i32 {
     }
     ans
 }
+
 fn render(mut cpu: Cpu) -> String {
     let mut image = String::new();
     for _row in 0..6 {
@@ -67,6 +62,7 @@ fn render(mut cpu: Cpu) -> String {
     }
     image
 }
+
 fn part_2(input: &str) -> String {
     let cpu = Cpu::new(input);
     render(cpu)
