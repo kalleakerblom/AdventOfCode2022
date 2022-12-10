@@ -56,44 +56,35 @@ fn part_1(input: &str) -> usize {
     let hidden = hidden_ew.intersection(&hidden_ns).count();
     height * width - hidden
 }
+
 fn part_2(input: &str) -> u32 {
     let map = read_map(input);
     let mut best_score = 0;
     for y in 0..map.len() {
         for x in 0..map[0].len() {
             let house = map[y][x];
-            let mut score_n = 0;
-            for n in (0..y).rev() {
-                if house <= map[n][x] {
-                    score_n += 1;
-                    break;
-                }
-                score_n += 1;
-            }
-            let mut score_s = 0;
-            for s in y + 1..map.len() {
-                if house <= map[s][x] {
-                    score_s += 1;
-                    break;
-                }
-                score_s += 1;
-            }
-            let mut score_w = 0;
-            for w in (0..x).rev() {
-                if house <= map[y][w] {
-                    score_w += 1;
-                    break;
-                }
-                score_w += 1;
-            }
-            let mut score_e = 0;
-            for e in (x + 1)..map[0].len() {
-                if house <= map[y][e] {
-                    score_e += 1;
-                    break;
-                }
-                score_e += 1;
-            }
+            let score_n = map[0..y]
+                .iter()
+                .rev()
+                .enumerate()
+                .find_map(|(i, col)| (house <= col[x]).then_some(i + 1))
+                .unwrap_or(y);
+            let score_s = map[y + 1..]
+                .iter()
+                .enumerate()
+                .find_map(|(i, col)| (house <= col[x]).then_some(i + 1))
+                .unwrap_or(map.len() - y - 1);
+            let score_w = map[y][0..x]
+                .iter()
+                .rev()
+                .enumerate()
+                .find_map(|(i, &tree)| (house <= tree).then_some(i + 1))
+                .unwrap_or(x);
+            let score_e = map[y][x + 1..]
+                .iter()
+                .enumerate()
+                .find_map(|(i, &tree)| (house <= tree).then_some(i + 1))
+                .unwrap_or(map[0].len() - x - 1);
             best_score = cmp::max(score_e * score_n * score_s * score_w, best_score);
         }
     }
