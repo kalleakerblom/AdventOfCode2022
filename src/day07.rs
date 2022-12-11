@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 struct Dir {
-    files: Vec<u64>,
+    files: u64,
     subdirs: Vec<String>,
 }
 fn get_dir_map(input: &str) -> HashMap<String, Dir> {
@@ -20,16 +20,16 @@ fn get_dir_map(input: &str) -> HashMap<String, Dir> {
             assert!(next == "$ ls");
         }
         // read ls printout
-        let mut files = Vec::new();
+        let mut files = 0;
         let mut subdirs = Vec::new();
-        while let Some(content) = lines.peek().filter(|l| !l.starts_with('$')) {
+        while lines.peek().filter(|l| !l.starts_with('$')).is_some() {
+            let content = lines.next().unwrap();
             if let Some(subdir) = content.strip_prefix("dir ") {
                 subdirs.push(subdir.to_string());
             } else {
                 // only care about file size at the moment
-                files.push(content.split_once(' ').unwrap().0.parse().unwrap())
+                files += content.split_once(' ').unwrap().0.parse::<u64>().unwrap();
             }
-            lines.next(); //only peeked, need to step to next line
         }
         result.insert(path.join("/"), Dir { files, subdirs });
     }
@@ -42,7 +42,7 @@ fn get_dir_size(
     size_map: &mut HashMap<String, u64>,
 ) -> u64 {
     let dir = &dir_map[path];
-    let mut size: u64 = dir.files.iter().sum();
+    let mut size: u64 = dir.files;
     for subdir in &dir.subdirs {
         let subpath = path.to_string() + "/" + subdir;
         size += get_dir_size(&subpath, dir_map, size_map);
@@ -57,9 +57,10 @@ fn part_1(input: &str) -> u64 {
     get_dir_size("/", &dir_map, &mut size_map);
     size_map
         .iter()
-        .filter_map(|(_k, v)| if *v < 100_000 { Some(*v) } else { None })
+        .filter_map(|(_k, &v)| if v < 100_000 { Some(v) } else { None })
         .sum()
 }
+
 fn part_2(input: &str) -> u64 {
     let dir_map = get_dir_map(input);
     let mut size_map = HashMap::new();
