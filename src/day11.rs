@@ -105,12 +105,12 @@ fn part_1(mut monkeys: Vec<Monkey>) -> u64 {
     monkeys[monkeys.len() - 2].inspection_count * monkeys[monkeys.len() - 1].inspection_count
 }
 
-fn part_2(mut monkeys: Vec<Monkey>, module: u64) -> u64 {
+fn part_2(mut monkeys: Vec<Monkey>, modulo: u64) -> u64 {
     for _round in 0..10_000 {
         for i in 0..monkeys.len() {
             while let Some(item) = monkeys[i].items.pop_front() {
                 monkeys[i].inspection_count += 1;
-                let worry = (monkeys[i].inspect_op)(item) % module;
+                let worry = (monkeys[i].inspect_op)(item) % modulo;
                 let target = (monkeys[i].pass_op)(worry);
                 monkeys[target].items.push_back(worry);
             }
@@ -123,7 +123,6 @@ fn part_2(mut monkeys: Vec<Monkey>, module: u64) -> u64 {
 #[cfg(test)]
 mod tests {
     use crate::day11::*;
-    use std::fs;
     #[test]
     fn example11_day_part1() {
         assert_eq!(part_1(example_monkeys()), 10605);
@@ -138,6 +137,9 @@ mod tests {
     }
     #[test]
     fn day11_part2() {
-        assert_eq!(part_2(real_monkeys(), 13 * 19 * 11 * 17 * 3 * 7 * 5 * 2), 0);
+        assert_eq!(
+            part_2(real_monkeys(), 13 * 19 * 11 * 17 * 3 * 7 * 5 * 2),
+            19457438264
+        );
     }
 }
