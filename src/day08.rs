@@ -5,6 +5,7 @@ fn read_map(s: &str) -> Vec<Vec<i8>> {
         .map(|l| l.chars().map(|c| c.to_digit(10).unwrap() as i8).collect())
         .collect()
 }
+
 fn part_1(input: &str) -> usize {
     let map = read_map(input);
     // find hidden from west & east
@@ -29,23 +30,21 @@ fn part_1(input: &str) -> usize {
         });
     }
     // find hidden from north & south
-    let width = map[0].len();
-    let height = map.len();
     let mut hidden_from_north = HashSet::new();
     let mut hidden_from_south = HashSet::new();
-    for x in 0..width {
+    for x in 0..map[0].len() {
         let mut tallest_from_north = -1;
-        (0..height).for_each(|y| {
-            if map[y][x] > tallest_from_north {
-                tallest_from_north = map[y][x];
+        map.iter().enumerate().for_each(|(y, column)| {
+            if column[x] > tallest_from_north {
+                tallest_from_north = column[x];
             } else {
                 hidden_from_north.insert((x, y));
             }
         });
         let mut tallest_from_south = -1;
-        (0..height).rev().for_each(|y| {
-            if map[y][x] > tallest_from_south {
-                tallest_from_south = map[y][x];
+        map.iter().enumerate().rev().for_each(|(y, column)| {
+            if column[x] > tallest_from_south {
+                tallest_from_south = column[x];
             } else {
                 hidden_from_south.insert((x, y));
             }
@@ -54,7 +53,7 @@ fn part_1(input: &str) -> usize {
     let hidden_ew: HashSet<_> = hidden_from_east.intersection(&hidden_from_west).collect();
     let hidden_ns: HashSet<_> = hidden_from_north.intersection(&hidden_from_south).collect();
     let hidden = hidden_ew.intersection(&hidden_ns).count();
-    height * width - hidden
+    map.len() * map[0].len() - hidden
 }
 
 fn part_2(input: &str) -> u32 {
