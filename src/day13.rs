@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::iter::Peekable;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -40,31 +41,32 @@ fn parse_recursive<I: Iterator<Item = char>>(chars: &mut Peekable<I>) -> Option<
 }
 
 impl PartialOrd for Node {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
-            (Node::Val(a), Node::Val(b)) => a.partial_cmp(b),
+            (Node::Val(a), Node::Val(b)) => a.cmp(b),
             (Node::Val(a), b @ Node::List(_)) => {
                 let list_a = Node::List([Node::Val(*a)].into());
-                list_a.partial_cmp(b)
+                list_a.cmp(b)
             }
             (a @ Node::List(_), Node::Val(b)) => {
                 let list_b = Node::List([Node::Val(*b)].into());
-                a.partial_cmp(&list_b)
+                a.cmp(&list_b)
             }
             (Node::List(a), Node::List(b)) => a
                 .iter()
                 .zip(b.iter())
-                .find_map(|(na, nb)| match na.partial_cmp(nb) {
-                    Some(std::cmp::Ordering::Equal) => None,
-                    cmp => cmp,
+                .find_map(|(na, nb)| match na.cmp(nb) {
+                    Ordering::Equal => None,
+                    cmp => Some(cmp),
                 })
-                .or_else(|| Some(a.len().cmp(&b.len()))),
+                .unwrap_or_else(|| a.len().cmp(&b.len())),
         }
-    }
-}
-impl Ord for Node {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
     }
 }
 
@@ -75,22 +77,19 @@ fn part_1(input: &str) -> usize {
         let a = Node::parse(lines.next().unwrap());
         let b = Node::parse(lines.next().unwrap());
         match a.partial_cmp(&b).unwrap() {
-            std::cmp::Ordering::Less => count += i + 1,
-            std::cmp::Ordering::Equal => panic!(),
-            std::cmp::Ordering::Greater => (),
+            Ordering::Less => count += i + 1,
+            Ordering::Equal => panic!(),
+            Ordering::Greater => (),
         }
     }
     count
 }
 fn part_2(input: &str) -> usize {
-    let mut packets = Vec::new();
-    for pair in input.split("\n\n") {
-        let mut lines = pair.lines();
-        let a = Node::parse(lines.next().unwrap());
-        let b = Node::parse(lines.next().unwrap());
-        packets.push(a);
-        packets.push(b);
-    }
+    let mut packets: Vec<_> = input
+        .split("\n\n")
+        .flat_map(str::lines)
+        .map(Node::parse)
+        .collect();
     let n2 = Node::parse("[[2]]");
     let n6 = Node::parse("[[6]]");
     packets.push(n2.clone());
@@ -98,7 +97,6 @@ fn part_2(input: &str) -> usize {
     packets.sort_unstable();
     let pos2 = packets.binary_search(&n2);
     let pos6 = packets.binary_search(&n6);
-
     (pos2.unwrap() + 1) * (pos6.unwrap() + 1)
 }
 
