@@ -1,9 +1,4 @@
-use core::time;
-use std::{
-    cmp,
-    collections::{HashMap, HashSet},
-    vec,
-};
+use std::{cmp, collections::HashMap};
 
 fn get_flow_and_travel_maps(
     s: &str,
@@ -11,7 +6,6 @@ fn get_flow_and_travel_maps(
     let mut flow_map = HashMap::new();
     let mut travel_map: HashMap<String, HashMap<String, u32>> = HashMap::new();
     for l in s.lines() {
-        //Valve AA has flow rate=0; tunnels lead to valves DD,
         let (valve, rest) = l.trim_start_matches("Valve ").split_once(' ').unwrap();
         let (flow_rate, rest) = rest
             .trim_start_matches("has flow rate=")
@@ -45,20 +39,19 @@ fn expand_travel_map(map: &mut HashMap<String, HashMap<String, u32>>, flow: &Has
                 if valve == other {
                     continue;
                 }
-                if map[valve].contains_key(other) {
-                    continue;
-                }
-                let mut shortest = u32::MAX;
+                let mut shortest: u32 = map[valve].get(other).cloned().unwrap_or(u32::MAX);
+                let mut beat_current_best = false;
                 for mid in map[valve].iter() {
                     let candidate = map[mid.0]
                         .get(other)
                         .map(|cost| mid.1 + cost)
                         .unwrap_or(u32::MAX);
-                    shortest = cmp::min(shortest, candidate);
+                    if candidate < shortest {
+                        shortest = candidate;
+                        beat_current_best = true;
+                    }
                 }
-                if shortest != u32::MAX {
-                    dbg!(shortest);
-                    dbg!(&valve, &other);
+                if beat_current_best {
                     map.get_mut(valve).unwrap().insert(other.into(), shortest);
                     map.get_mut(other).unwrap().insert(valve.into(), shortest);
                     improved = true;
@@ -100,7 +93,7 @@ fn recursive_best_plan(
             travel,
         );
         plan.pop();
-        best = best.max(candidate);
+        best = cmp::max(best, candidate);
     }
 
     best
@@ -109,11 +102,17 @@ fn recursive_best_plan(
 fn part_1(input: &str) -> u32 {
     let (flow, mut travel) = get_flow_and_travel_maps(input);
     expand_travel_map(&mut travel, &flow);
-    dbg!(travel);
-    0
+    recursive_best_plan(&mut vec!["AA".into()], 0, 30, &flow, &travel)
 }
+
+///////////////// part 2
+
 fn part_2(input: &str) -> u32 {
-    todo!()
+    let (flow, mut travel) = get_flow_and_travel_maps(input);
+    expand_travel_map(&mut travel, &flow);
+    dbg!(&travel["AA"]);
+    0
+    //recursive_best_plan_part2(&mut vec!["AA".into()], 0, 26, &flow, &travel)
 }
 
 #[cfg(test)]
@@ -129,7 +128,7 @@ mod tests {
     fn day16_part1() {
         let input = fs::read_to_string("input/day16").unwrap();
         //1355 too low
-        assert_eq!(part_1(&input), 0);
+        assert_eq!(part_1(&input), 1641);
     }
     #[test]
     fn example16_part2() {
@@ -142,26 +141,3 @@ mod tests {
         assert_eq!(part_2(&input), 0);
     }
 }
-
-// let mut best = (0, 0, "".to_string());
-//         for (other, travel_cost) in travel[&pos].iter() {
-//             if closed.contains(other) {
-//                 continue;
-//             }
-//             let other_flow = flow[other];
-//             let value = other_flow * time_left.saturating_sub(travel_cost + 1);
-//             if value > best.0 {
-//                 best = (value, travel_cost + 1, other.to_string());
-//             }
-//         }
-
-//         if best.0 != 0 {
-//             dbg!(&best);
-//             closed.insert(best.2.clone());
-//             pos = best.2;
-//             time_left = time_left.saturating_sub(best.1);
-//             pressure += best.0;
-//             continue;
-//         }
-//         // no more to do
-//         break;
