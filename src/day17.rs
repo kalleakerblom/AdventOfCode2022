@@ -1,4 +1,6 @@
-use std::{cmp, collections::HashSet};
+use std::{cmp, collections::HashSet, env, fs};
+
+use itertools::Itertools;
 
 type Pos = (i64, i64);
 const LEFT_BOUND: i64 = 0;
@@ -140,11 +142,11 @@ enum Dir {
 
 const BLOCK_ORDER: [Type; 5] = [Type::HBar, Type::Cross, Type::RevL, Type::VBar, Type::Box];
 
-fn part_1(input: &str) -> u64 {
+fn calc_tower_height(winds: &str, blocks: u64) -> u64 {
     let mut block_count = 0;
     let mut highest = 0;
-    let mut type_iter = BLOCK_ORDER.iter().cycle();
-    let mut winds_iter = input
+    let mut type_index = 0;
+    let winds = winds
         .trim()
         .chars()
         .map(|c| match c {
@@ -152,16 +154,19 @@ fn part_1(input: &str) -> u64 {
             '>' => Dir::Right,
             bad => panic!("bad:{bad}"),
         })
-        .cycle();
+        .collect_vec();
+    let mut wind_index = 0;
     let mut stationary = HashSet::<Pos>::new();
-    while block_count < 2022 {
-        let mut new_block = Block::new(*type_iter.next().unwrap(), highest);
+    while block_count < blocks {
+        let mut new_block = Block::new(BLOCK_ORDER[type_index], highest);
+        type_index = (type_index + 1) % BLOCK_ORDER.len();
         block_count += 1;
         loop {
-            match winds_iter.next().unwrap() {
+            match winds[wind_index] {
                 Dir::Left => new_block.move_left(&stationary),
                 Dir::Right => new_block.move_right(&stationary),
             }
+            wind_index = (wind_index + 1) % winds.len();
             if !new_block.drop(&stationary) {
                 break;
             }
@@ -169,14 +174,19 @@ fn part_1(input: &str) -> u64 {
         highest = cmp::max(highest, new_block.highest());
         new_block.fill_stationary(&mut stationary);
     }
-    //draw(stationary, highest);
+    draw(stationary, highest);
     highest as u64
 }
+
+fn part_1(input: &str) -> u64 {
+    calc_tower_height(input, 2022)
+}
 fn part_2(input: &str) -> u64 {
-    todo!()
+    calc_tower_height(input, 6000) // 1_000_000_000_000
 }
 
 fn draw(stationary: HashSet<Pos>, highest: i64) {
+    let mut output = String::new();
     for y in (1..=highest).rev() {
         let mut line = String::new();
         line.push('|');
@@ -188,9 +198,11 @@ fn draw(stationary: HashSet<Pos>, highest: i64) {
             }
         }
         line.push('|');
-        println!("{line}");
+        output.push_str(&line);
+        output.push('\n');
     }
-    println!("+-------+");
+    output.push_str("+-------+");
+    fs::write("output/drawing_day17.txt", output);
 }
 
 #[cfg(test)]
@@ -208,12 +220,20 @@ mod tests {
     }
     #[test]
     fn example17_part2() {
-        let input = fs::read_to_string("input/example17").unwrap();
-        assert_eq!(part_2(&input), 0);
+        assert_eq!(
+            part_2(">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>"),
+            1_514_285_714_288
+        );
     }
     #[test]
     fn day17_part2() {
         let input = fs::read_to_string("input/day17").unwrap();
-        assert_eq!(part_2(&input), 0);
+        let blocks = 1_000_000_000_000u64 - 240;
+        // after 240 blocks (height 365), same pattern repeats every 1740 blocks, with height 2681
+        let div = blocks / 1740;
+        let rem = dbg!(blocks % 1740);
+        // height of remainder blocks of repeating section = 1434
+        assert_eq!(365 + div * 2681 + 1434, 1540804597682u64);
+        assert_eq!(part_2(&input), 1540804597682u64);
     }
 }
