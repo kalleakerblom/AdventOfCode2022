@@ -1,4 +1,4 @@
-use std::{cmp, collections::HashSet, env, fs};
+use std::{cmp, collections::HashSet, fs};
 
 use itertools::Itertools;
 
@@ -182,7 +182,8 @@ fn part_1(input: &str) -> u64 {
     calc_tower_height(input, 2022)
 }
 fn part_2(input: &str) -> u64 {
-    calc_tower_height(input, 6000) // 1_000_000_000_000
+    calc_tower_height(input, 6000); // 1_000_000_000_000
+    todo!("Hacky solve: Print tower after variable number of blocks to find small base + repeating section.");
 }
 
 fn draw(stationary: HashSet<Pos>, highest: i64) {
@@ -202,7 +203,7 @@ fn draw(stationary: HashSet<Pos>, highest: i64) {
         output.push('\n');
     }
     output.push_str("+-------+");
-    fs::write("output/drawing_day17.txt", output);
+    let _res = fs::write("output/drawing_day17.txt", output);
 }
 
 #[cfg(test)]
@@ -231,7 +232,7 @@ mod tests {
         let blocks = 1_000_000_000_000u64 - 240;
         // after 240 blocks (height 365), same pattern repeats every 1740 blocks, with height 2681
         let div = blocks / 1740;
-        let rem = dbg!(blocks % 1740);
+        let _rem = dbg!(blocks % 1740);
         // height of remainder blocks of repeating section = 1434
         assert_eq!(365 + div * 2681 + 1434, 1540804597682u64);
         assert_eq!(part_2(&input), 1540804597682u64);

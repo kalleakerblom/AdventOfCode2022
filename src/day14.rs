@@ -1,7 +1,4 @@
-use std::{
-    cmp,
-    collections::{HashMap, HashSet},
-};
+use std::{cmp, collections::HashSet};
 
 struct SandMap {
     source: (i32, i32),

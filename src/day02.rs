@@ -21,17 +21,17 @@ impl Outcome {
     }
 }
 #[derive(PartialEq, Debug, Clone)]
-enum RPS {
+enum Rps {
     Rock,
     Paper,
     Scissors,
 }
-impl RPS {
+impl Rps {
     fn score(&self) -> u32 {
         match self {
-            RPS::Rock => 1,
-            RPS::Paper => 2,
-            RPS::Scissors => 3,
+            Rps::Rock => 1,
+            Rps::Paper => 2,
+            Rps::Scissors => 3,
         }
     }
     fn from_str(s: &str) -> Self {
@@ -45,14 +45,14 @@ impl RPS {
     fn from_outcome(other: &Self, outcome: &Outcome) -> Self {
         match outcome {
             Outcome::Win => match other {
-                RPS::Rock => RPS::Paper,
-                RPS::Paper => RPS::Scissors,
-                RPS::Scissors => RPS::Rock,
+                Rps::Rock => Rps::Paper,
+                Rps::Paper => Rps::Scissors,
+                Rps::Scissors => Rps::Rock,
             },
             Outcome::Loss => match other {
-                RPS::Rock => RPS::Scissors,
-                RPS::Paper => RPS::Rock,
-                RPS::Scissors => RPS::Paper,
+                Rps::Rock => Rps::Scissors,
+                Rps::Paper => Rps::Rock,
+                Rps::Scissors => Rps::Paper,
             },
             Outcome::Tie => other.clone(),
         }
@@ -62,7 +62,7 @@ impl RPS {
             return Outcome::Tie;
         }
         match (&self, &other) {
-            (RPS::Rock, RPS::Scissors) | (RPS::Paper, RPS::Rock) | (RPS::Scissors, RPS::Paper) => {
+            (Rps::Rock, Rps::Scissors) | (Rps::Paper, Rps::Rock) | (Rps::Scissors, Rps::Paper) => {
                 Outcome::Win
             }
             _ => Outcome::Loss,
@@ -74,7 +74,7 @@ fn part_1(input: &str) -> u32 {
     let mut score = 0;
     for l in input.lines() {
         let (other, me) = l.split_once(' ').unwrap();
-        let (other, me) = (RPS::from_str(other), RPS::from_str(me));
+        let (other, me) = (Rps::from_str(other), Rps::from_str(me));
         score += me.score() + me.play(&other).score();
     }
     score
@@ -83,8 +83,8 @@ fn part_2(input: &str) -> u32 {
     let mut score = 0;
     for l in input.lines() {
         let (other, outcome) = l.split_once(' ').unwrap();
-        let (other, outcome) = (RPS::from_str(other), Outcome::from_str(outcome));
-        let me = RPS::from_outcome(&other, &outcome);
+        let (other, outcome) = (Rps::from_str(other), Outcome::from_str(outcome));
+        let me = Rps::from_outcome(&other, &outcome);
         score += me.score() + outcome.score();
     }
     score
