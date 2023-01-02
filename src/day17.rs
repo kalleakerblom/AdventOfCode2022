@@ -178,10 +178,10 @@ fn calc_tower_height(winds: &str, blocks: u64) -> u64 {
     highest as u64
 }
 
-fn part_1(input: &str) -> u64 {
+pub fn part_1(input: &str) -> u64 {
     calc_tower_height(input, 2022)
 }
-fn part_2(input: &str) -> u64 {
+pub fn part_2(input: &str) -> u64 {
     calc_tower_height(input, 6000); // 1_000_000_000_000
     todo!("Hacky solve: Print tower after variable number of blocks to find small base + repeating section.");
 }

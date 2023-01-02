@@ -99,7 +99,7 @@ fn recursive_best_plan(
     best
 }
 
-fn part_1(input: &str) -> u32 {
+pub fn part_1(input: &str) -> u32 {
     let (flow, mut travel) = get_flow_and_travel_maps(input);
     expand_travel_map(&mut travel, &flow);
     recursive_best_plan(AA_ID, HashSet::new(), 0, 30, &flow, &travel)
@@ -175,7 +175,7 @@ fn recursive_make_plan_part2(
     );
 }
 
-fn part_2(input: &str) -> u32 {
+pub fn part_2(input: &str) -> u32 {
     let (flow_map, mut travel) = get_flow_and_travel_maps(input);
     expand_travel_map(&mut travel, &flow_map);
     let mut best = 0;

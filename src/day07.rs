@@ -51,7 +51,7 @@ fn get_dir_size(
     size
 }
 
-fn part_1(input: &str) -> u64 {
+pub fn part_1(input: &str) -> u64 {
     let dir_map = get_dir_map(input);
     let mut size_map = HashMap::new();
     get_dir_size("/", &dir_map, &mut size_map);
@@ -61,7 +61,7 @@ fn part_1(input: &str) -> u64 {
         .sum()
 }
 
-fn part_2(input: &str) -> u64 {
+pub fn part_2(input: &str) -> u64 {
     let dir_map = get_dir_map(input);
     let mut size_map = HashMap::new();
     get_dir_size("/", &dir_map, &mut size_map);

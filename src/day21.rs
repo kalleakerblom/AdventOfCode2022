@@ -93,11 +93,11 @@ fn print(id: &Id, exprs: &HashMap<Id, Expr>) {
     }
 }
 
-fn part_1(input: &str) -> i64 {
+pub fn part_1(input: &str) -> i64 {
     let mut exprs: HashMap<_, _> = input.lines().map(Expr::parse).collect();
     eval(&"root".to_string(), &mut exprs)
 }
-fn part_2(input: &str) -> u64 {
+pub fn part_2(input: &str) -> u64 {
     let mut exprs: HashMap<_, _> = input.lines().map(Expr::parse).collect();
     if let Expr::Op(l, r, _) = exprs.get("root").unwrap() {
         let (l, r) = (l.clone(), r.clone());

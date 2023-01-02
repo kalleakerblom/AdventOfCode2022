@@ -39,7 +39,7 @@ fn decimal_to_snafu(i: i64) -> Vec<char> {
     res
 }
 
-fn part_1(input: &str) -> String {
+pub fn part_1(input: &str) -> String {
     let sum: i64 = input
         .lines()
         .map(|l| {

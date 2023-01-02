@@ -97,7 +97,7 @@ impl SandMap {
     }
 }
 
-fn part_1(input: &str) -> u32 {
+pub fn part_1(input: &str) -> u32 {
     let mut sand_map = SandMap::from_str(input);
     let mut sand = 0;
     while sand_map.step() {
@@ -105,7 +105,7 @@ fn part_1(input: &str) -> u32 {
     }
     sand
 }
-fn part_2(input: &str) -> u32 {
+pub fn part_2(input: &str) -> u32 {
     let mut sand_map = SandMap::from_str(input);
     let mut sand = 0;
     while sand_map.step_part2() {

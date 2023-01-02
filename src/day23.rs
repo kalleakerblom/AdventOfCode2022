@@ -89,11 +89,11 @@ fn calc_empty_tiles_and_rounds(input: &str, max_rounds: usize) -> (i32, usize) {
     (empty_tiles, rounds)
 }
 
-fn part_1(s: &str) -> i32 {
+pub fn part_1(s: &str) -> i32 {
     calc_empty_tiles_and_rounds(s, 10).0
 }
 
-fn part_2(s: &str) -> usize {
+pub fn part_2(s: &str) -> usize {
     calc_empty_tiles_and_rounds(s, usize::MAX).1
 }
 

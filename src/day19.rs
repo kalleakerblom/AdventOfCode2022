@@ -8,7 +8,7 @@ struct GeoBotCost {
     ore: u16,
     obs: u16,
 }
-struct Obs(u16);
+
 struct Bp {
     ore_bot_cost: u16,  //Ore
     clay_bot_cost: u16, //Ore
@@ -119,7 +119,7 @@ fn play(
     }
 }
 
-fn part_1(input: &str) -> usize {
+pub fn part_1(input: &str) -> usize {
     let blueprints: Vec<_> = input.lines().map(Bp::parse).collect();
     blueprints
         .iter()
@@ -141,7 +141,7 @@ fn part_1(input: &str) -> usize {
         })
         .sum()
 }
-fn part_2(input: &str) -> usize {
+pub fn part_2(input: &str) -> usize {
     let blueprints: Vec<_> = input.lines().map(Bp::parse).collect();
     blueprints
         .iter()

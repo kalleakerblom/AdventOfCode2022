@@ -20,7 +20,7 @@ impl Knot {
         }
     }
 }
-fn part_1(input: &str) -> usize {
+pub fn part_1(input: &str) -> usize {
     let mut head = Knot(0, 0);
     let mut tail = Knot(0, 0);
     let mut visited = HashSet::<Knot>::new();
@@ -35,7 +35,7 @@ fn part_1(input: &str) -> usize {
     }
     visited.len()
 }
-fn part_2(input: &str) -> usize {
+pub fn part_2(input: &str) -> usize {
     let mut knots = [Knot(0, 0); 10];
     let mut visited = HashSet::<Knot>::new();
     visited.insert(knots[9]);

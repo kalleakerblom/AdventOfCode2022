@@ -28,7 +28,7 @@ fn parse_stacks_and_moves(s: &str) -> (Vec<Vec<u8>>, Vec<Move>) {
     (stacks, moves)
 }
 
-fn part_1(input: &str) -> String {
+pub fn part_1(input: &str) -> String {
     let (mut stacks, moves) = parse_stacks_and_moves(input);
     for m in moves {
         for _ in 0..m.count {
@@ -40,7 +40,7 @@ fn part_1(input: &str) -> String {
     String::from_utf8(ans).unwrap()
 }
 
-fn part_2(input: &str) -> String {
+pub fn part_2(input: &str) -> String {
     let (mut stacks, moves) = parse_stacks_and_moves(input);
     for m in moves {
         // Yikes Rust, two mut ref is hard. v2 with slice of cells instead of split_mut

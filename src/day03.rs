@@ -8,7 +8,7 @@ fn prio(b: u8) -> u32 {
     }
 }
 
-fn part_1(input: &str) -> u32 {
+pub fn part_1(input: &str) -> u32 {
     input
         .lines()
         .map(|l| {
@@ -20,7 +20,7 @@ fn part_1(input: &str) -> u32 {
         })
         .sum()
 }
-fn part_2(input: &str) -> u32 {
+pub fn part_2(input: &str) -> u32 {
     let mut sum = 0;
     for mut group in input.lines().chunks(3).into_iter() {
         let set_a = HashSet::<u8>::from_iter(group.next().unwrap().bytes());

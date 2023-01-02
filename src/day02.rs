@@ -70,7 +70,7 @@ impl Rps {
     }
 }
 
-fn part_1(input: &str) -> u32 {
+pub fn part_1(input: &str) -> u32 {
     let mut score = 0;
     for l in input.lines() {
         let (other, me) = l.split_once(' ').unwrap();
@@ -79,7 +79,7 @@ fn part_1(input: &str) -> u32 {
     }
     score
 }
-fn part_2(input: &str) -> u32 {
+pub fn part_2(input: &str) -> u32 {
     let mut score = 0;
     for l in input.lines() {
         let (other, outcome) = l.split_once(' ').unwrap();

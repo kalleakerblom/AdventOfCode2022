@@ -6,7 +6,7 @@ fn read_map(s: &str) -> Vec<Vec<i8>> {
         .collect()
 }
 
-fn part_1(input: &str) -> usize {
+pub fn part_1(input: &str) -> usize {
     let map = read_map(input);
     // find hidden from west & east
     let mut hidden_from_east = HashSet::new();
@@ -56,7 +56,7 @@ fn part_1(input: &str) -> usize {
     map.len() * map[0].len() - hidden
 }
 
-fn part_2(input: &str) -> u32 {
+pub fn part_2(input: &str) -> u32 {
     let map = read_map(input);
     let mut best_score = 0;
     for y in 0..map.len() {

@@ -20,7 +20,7 @@ fn decrypt(mut nums: Vec<(usize, i64)>, key: i64, repeat: usize) -> i64 {
     a + b + c
 }
 
-fn part_1(input: &str) -> i64 {
+pub fn part_1(input: &str) -> i64 {
     let nums: Vec<(usize, i64)> = input
         .lines()
         .map(|s| s.parse().unwrap())
@@ -29,7 +29,7 @@ fn part_1(input: &str) -> i64 {
     decrypt(nums, 1, 1)
 }
 
-fn part_2(input: &str) -> i64 {
+pub fn part_2(input: &str) -> i64 {
     let nums: Vec<(usize, i64)> = input
         .lines()
         .map(|s| s.parse().unwrap())

@@ -92,14 +92,14 @@ impl Iterator for Perimeter {
     }
 }
 
-fn part_1(input: &str, row: i32) -> u32 {
+pub fn part_1(input: &str, row: i32) -> u32 {
     let sensors = input.lines().map(Sensor::parse).collect_vec();
     (-10_000_000..10_000_000)
         .into_iter()
         .map(|x| sensors.iter().any(|s| s.in_range((x, row))) as u32)
         .sum()
 }
-fn part_2(input: &str) -> i64 {
+pub fn part_2(input: &str) -> i64 {
     let sensors = input.lines().map(Sensor::parse).collect_vec();
     let inside_box = |p: Pos| (0..=4_000_000).contains(&p.0) && (0..=4_000_000).contains(&p.1);
     let mut distress_pos = None;

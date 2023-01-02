@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-fn part_1(input: &str) -> usize {
+pub fn part_1(input: &str) -> usize {
     let unique = |a, b, c, d| a != b && a != c && a != d && b != c && b != d && c != d;
     input
         .as_bytes()
@@ -12,7 +12,7 @@ fn part_1(input: &str) -> usize {
         + 4
 }
 
-fn part_2(input: &str) -> usize {
+pub fn part_2(input: &str) -> usize {
     let unique = |win: &[u8]| {
         let mut set = HashSet::with_capacity(14);
         win.iter().all(|byte| set.insert(*byte))

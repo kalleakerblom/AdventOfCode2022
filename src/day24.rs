@@ -167,7 +167,7 @@ fn recursive_search(
     }
 }
 
-fn part_1(input: &str) -> i32 {
+pub fn part_1(input: &str) -> i32 {
     let (tiles, winds, bounds) = parse_tiles_and_winds_and_bounds(input);
     let goal = V2d::new(bounds.x_bounds.1, 0);
     let start = V2d::new(bounds.x_bounds.0, bounds.y_bounds.1 + 1);
@@ -186,7 +186,7 @@ fn part_1(input: &str) -> i32 {
     );
     best
 }
-fn part_2(input: &str) -> i32 {
+pub fn part_2(input: &str) -> i32 {
     let (tiles, winds, bounds) = parse_tiles_and_winds_and_bounds(input);
     let goal = V2d::new(bounds.x_bounds.1, 0);
     let start = V2d::new(bounds.x_bounds.0, bounds.y_bounds.1 + 1);

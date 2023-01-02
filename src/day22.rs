@@ -105,7 +105,7 @@ fn execute(start: V2d, dir: V2d, map: &TileMap, cmds: &[Cmd]) -> (V2d, V2d) {
     (pos, dir)
 }
 
-fn part_1(input: &str) -> i32 {
+pub fn part_1(input: &str) -> i32 {
     let (map, cmds) = input.split_once("\n\n").unwrap();
     let (map, start) = parse_map_and_start(map);
     let cmds = parse_commands(cmds);
@@ -209,7 +209,7 @@ fn wrap_map() -> HashMap<V2d, (V2d, V2d)> {
     res
 }
 
-fn part_2(input: &str) -> i32 {
+pub fn part_2(input: &str) -> i32 {
     let (map, cmds) = input.split_once("\n\n").unwrap();
     let (map, start) = parse_map_and_start(map);
     let cmds = parse_commands(cmds);

@@ -7,11 +7,11 @@ fn block_sums(input: &str) -> impl Iterator<Item = i32> + '_ {
     })
 }
 
-fn part_1(input: &str) -> i32 {
+pub fn part_1(input: &str) -> i32 {
     block_sums(input).max().unwrap()
 }
 
-fn part_2(input: &str) -> i32 {
+pub fn part_2(input: &str) -> i32 {
     let mut calorie_sums: Vec<_> = block_sums(input).collect();
     let len = calorie_sums.len();
     calorie_sums.select_nth_unstable(len - 3);

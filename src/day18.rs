@@ -85,11 +85,11 @@ fn surface_area_part2(lava_cells: &CellSet, outside_cells: &CellSet) -> u32 {
     lava_cells.iter().map(cell_surface).sum()
 }
 
-fn part_1(input: &str) -> u32 {
+pub fn part_1(input: &str) -> u32 {
     let (cell_set, _) = read_cells(input);
     surface_area(&cell_set)
 }
-fn part_2(input: &str) -> u32 {
+pub fn part_2(input: &str) -> u32 {
     let (lava_cells, bounds) = read_cells(input);
     let outside_cells = get_outside_cells(bounds.0, bounds, &lava_cells);
     surface_area_part2(&lava_cells, &outside_cells)

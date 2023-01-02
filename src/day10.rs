@@ -31,7 +31,7 @@ impl<'a> Cpu<'a> {
     }
 }
 
-fn part_1(input: &str) -> i32 {
+pub fn part_1(input: &str) -> i32 {
     let mut cpu = Cpu::new(input);
     let mut ans = 0;
     for _ in 0..20 {
@@ -63,7 +63,7 @@ fn render(mut cpu: Cpu) -> String {
     image
 }
 
-fn part_2(input: &str) -> String {
+pub fn part_2(input: &str) -> String {
     let cpu = Cpu::new(input);
     render(cpu)
 }

@@ -72,7 +72,7 @@ fn get_to_visit(center: Pos, map: &Map, visited: &mut HashSet<Pos>, backwards: b
     to_visit
 }
 
-fn part_1(input: &str) -> u32 {
+pub fn part_1(input: &str) -> u32 {
     let map = Map::from_str(input);
     let mut visited = HashSet::new();
     let mut to_visit = VecDeque::new();
@@ -87,7 +87,7 @@ fn part_1(input: &str) -> u32 {
     }
     panic!()
 }
-fn part_2(input: &str) -> u32 {
+pub fn part_2(input: &str) -> u32 {
     let map = Map::from_str(input);
     let mut visited = HashSet::new();
     let mut to_visit = VecDeque::new();

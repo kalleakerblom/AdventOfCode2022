@@ -70,7 +70,7 @@ impl Ord for Node {
     }
 }
 
-fn part_1(input: &str) -> usize {
+pub fn part_1(input: &str) -> usize {
     let mut count = 0;
     for (i, pair) in input.split("\n\n").enumerate() {
         let mut lines = pair.lines();
@@ -84,7 +84,7 @@ fn part_1(input: &str) -> usize {
     }
     count
 }
-fn part_2(input: &str) -> usize {
+pub fn part_2(input: &str) -> usize {
     let mut packets: Vec<_> = input
         .split("\n\n")
         .flat_map(str::lines)
