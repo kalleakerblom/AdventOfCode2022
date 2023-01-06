@@ -1,44 +1,38 @@
-use std::{cmp, collections::HashSet};
-
+use std::{cmp, collections::HashSet, iter};
+enum Part {
+    One,
+    Two,
+}
 struct SandMap {
     source: (i32, i32),
     map: HashSet<(i32, i32)>,
     bottom: i32,
+    part: Part,
 }
-
 impl SandMap {
-    fn from_str(s: &str) -> Self {
+    fn from_str(s: &str, part: Part) -> Self {
         let mut map: HashSet<(i32, i32)> = HashSet::new();
         let mut bottom = -1;
         for l in s.lines() {
-            let mut points = l.split(" -> ");
-            let coords = |p: &str| {
+            let mut points = l.split(" -> ").map(|p: &str| {
                 p.split_once(',')
                     .map(|(x, y)| (x.parse().unwrap(), y.parse().unwrap()))
                     .unwrap()
-            };
-            let mut prev: (i32, i32) = coords(points.next().unwrap());
+            });
+            let mut prev: (i32, i32) = points.next().unwrap();
             bottom = cmp::max(bottom, prev.1);
             for next in points {
-                let next = coords(next);
                 bottom = cmp::max(bottom, next.1);
-                let sig_x = (next.0 - prev.0).signum();
-                if sig_x != 0 {
-                    let mut x = prev.0;
-                    while x != next.0 {
-                        map.insert((x, next.1));
-                        x += sig_x;
+                let dx = (next.0 - prev.0).signum();
+                let dy = (next.1 - prev.1).signum();
+                let mut p = prev;
+                loop {
+                    map.insert(p);
+                    if p == next {
+                        break;
                     }
-                    map.insert(next);
-                } else {
-                    let sig_y = (next.1 - prev.1).signum();
-                    let mut y = prev.1;
-                    while y != next.1 {
-                        map.insert((next.0, y));
-                        y += sig_y;
-                    }
+                    p = (p.0 + dx, p.1 + dy);
                 }
-                map.insert(next);
                 prev = next;
             }
         }
@@ -46,71 +40,44 @@ impl SandMap {
             source: (500, 0),
             map,
             bottom,
+            part,
         }
     }
+
     fn step(&mut self) -> bool {
         let mut p = self.source;
         loop {
-            if p.1 > self.bottom {
+            if matches!(self.part, Part::One) && p.1 > self.bottom {
+                // fell off the map
                 break false;
-            }
-            if !self.map.contains(&(p.0, p.1 + 1)) {
-                p = (p.0, p.1 + 1);
-                continue;
-            }
-            if !self.map.contains(&(p.0 - 1, p.1 + 1)) {
-                p = (p.0 - 1, p.1 + 1);
-                continue;
-            }
-            if !self.map.contains(&(p.0 + 1, p.1 + 1)) {
-                p = (p.0 + 1, p.1 + 1);
-                continue;
-            }
-            // rest
-            self.map.insert(p);
-            break true;
-        }
-    }
-    fn step_part2(&mut self) -> bool {
-        let mut p = self.source;
-        loop {
-            if p.1 + 1 == self.bottom + 2 {
+            } else if p.1 + 1 == self.bottom + 2 {
+                // fell to inf floor
                 self.map.insert(p);
                 break true;
             }
-            if !self.map.contains(&(p.0, p.1 + 1)) {
-                p = (p.0, p.1 + 1);
-                continue;
+            if let Some(fall) = [0, -1, 1]
+                .iter()
+                .map(|dx| (p.0 + dx, p.1 + 1))
+                .find(|fall| !self.map.contains(fall))
+            {
+                p = fall;
+            } else {
+                // at rest
+                self.map.insert(p);
+                break p != self.source;
             }
-            if !self.map.contains(&(p.0 - 1, p.1 + 1)) {
-                p = (p.0 - 1, p.1 + 1);
-                continue;
-            }
-            if !self.map.contains(&(p.0 + 1, p.1 + 1)) {
-                p = (p.0 + 1, p.1 + 1);
-                continue;
-            }
-            // rest
-            self.map.insert(p);
-            break p != self.source;
         }
     }
 }
 
-pub fn part_1(input: &str) -> u32 {
-    let mut sand_map = SandMap::from_str(input);
-    let mut sand = 0;
-    while sand_map.step() {
-        sand += 1;
-    }
-    sand
+pub fn part_1(input: &str) -> usize {
+    let mut sand_map = SandMap::from_str(input, Part::One);
+    iter::from_fn(|| sand_map.step().then_some(())).count()
 }
-pub fn part_2(input: &str) -> u32 {
-    let mut sand_map = SandMap::from_str(input);
-    let mut sand = 0;
-    while sand_map.step_part2() {
-        sand += 1;
-    }
+
+pub fn part_2(input: &str) -> usize {
+    let mut sand_map = SandMap::from_str(input, Part::Two);
+    let sand = iter::from_fn(|| sand_map.step().then_some(())).count();
     sand + 1
 }
 
