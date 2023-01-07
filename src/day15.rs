@@ -36,21 +36,20 @@ impl Sensor {
     }
     fn perimeter(&self) -> Perimeter {
         Perimeter {
-            north: (self.pos.0, self.pos.1 + self.radius + 1),
-            east: (self.pos.0 + self.radius + 1, self.pos.1),
-            south: (self.pos.0, self.pos.1 - (self.radius + 1)),
-            west: (self.pos.0 - (self.radius + 1), self.pos.1),
+            center: self.pos,
+            radius: self.radius,
             dx: 1,
             dy: -1,
             next: Some((self.pos.0, self.pos.1 + self.radius + 1)),
         }
     }
+    fn x_range(&self) -> (i32, i32) {
+        (self.pos.0 - self.radius, self.pos.0 + self.radius)
+    }
 }
 struct Perimeter {
-    north: Pos,
-    east: Pos,
-    south: Pos,
-    west: Pos,
+    center: Pos,
+    radius: i32,
     dx: i32,
     dy: i32,
     next: Option<Pos>,
@@ -62,25 +61,29 @@ impl Iterator for Perimeter {
         let out = self.next?;
         self.next = match (self.dx, self.dy) {
             (1, -1) => {
-                if out == self.east {
+                // 12 to 3
+                if out.0 == self.center.0 + self.radius {
                     self.dx = -1;
                 }
                 Some((out.0 + self.dx, out.1 + self.dy))
             }
             (-1, -1) => {
-                if out == self.south {
+                // 3 to 6
+                if out.1 == self.center.1 - self.radius {
                     self.dy = 1;
                 }
                 Some((out.0 + self.dx, out.1 + self.dy))
             }
             (-1, 1) => {
-                if out == self.west {
+                // 6 to 9
+                if out.0 == self.center.0 - self.radius {
                     self.dx = 1;
                 }
                 Some((out.0 + self.dx, out.1 + self.dy))
             }
             (1, 1) => {
-                if out == self.north {
+                // 9 to 12
+                if out.1 == self.center.1 + self.radius {
                     None
                 } else {
                     Some((out.0 + self.dx, out.1 + self.dy))
@@ -94,7 +97,13 @@ impl Iterator for Perimeter {
 
 pub fn part_1(input: &str, row: i32) -> u32 {
     let sensors = input.lines().map(Sensor::parse).collect_vec();
-    (-10_000_000..10_000_000)
+    let (min_x, max_x) = sensors
+        .iter()
+        .map(Sensor::x_range)
+        .fold((i32::MAX, i32::MIN), |acc, (min, max)| {
+            (acc.0.min(min), acc.1.max(max))
+        });
+    (min_x..max_x)
         .into_iter()
         .map(|x| sensors.iter().any(|s| s.in_range((x, row))) as u32)
         .sum()
