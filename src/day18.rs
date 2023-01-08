@@ -28,9 +28,8 @@ fn read_cells(s: &str) -> (CellSet, Bounds) {
             V3d::new(x, y, z)
         })
         .collect();
-    // NOTE: Did not work with padding +1/-1 for bounds, why?
-    let min = V3d::new(min_x - 2, min_y - 2, min_z - 2);
-    let max = V3d::new(max_x + 2, max_y + 2, max_z + 2);
+    let min = V3d::new(min_x, min_y, min_z);
+    let max = V3d::new(max_x, max_y, max_z);
     (cell_set, (min, max))
 }
 
@@ -54,9 +53,9 @@ fn surface_area(cells: &CellSet) -> u32 {
 
 fn get_outside_cells(start: V3d, (min, max): (V3d, V3d), lava_cells: &CellSet) -> CellSet {
     let in_bounds = |p: V3d| {
-        (min.x..max.x).contains(&p.x)
-            && (min.y..max.y).contains(&p.y)
-            && (min.z..max.z).contains(&p.z)
+        (min.x - 1..=max.x + 1).contains(&p.x)
+            && (min.y - 1..=max.y + 1).contains(&p.y)
+            && (min.z - 1..=max.z + 1).contains(&p.z)
     };
     let mut visited = HashSet::new();
     let mut to_visit = VecDeque::new();
