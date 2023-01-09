@@ -1,21 +1,19 @@
 use std::collections::{hash_map::Entry, HashMap, HashSet};
-
 type V2d = cgmath::Vector2<i32>;
-const DIRS: [V2d; 8] = [
-    V2d::new(-1, 0),
-    V2d::new(1, 0),
-    V2d::new(0, -1),
-    V2d::new(0, 1),
-    V2d::new(1, 1),
-    V2d::new(1, -1),
-    V2d::new(-1, 1),
-    V2d::new(-1, -1),
-];
 
-const NORTH_DIRS: [V2d; 3] = [V2d::new(0, -1), V2d::new(1, -1), V2d::new(-1, -1)];
-const EAST_DIRS: [V2d; 3] = [V2d::new(1, 0), V2d::new(1, 1), V2d::new(1, -1)];
-const SOUTH_DIRS: [V2d; 3] = [V2d::new(0, 1), V2d::new(1, 1), V2d::new(-1, 1)];
-const WEST_DIRS: [V2d; 3] = [V2d::new(-1, 0), V2d::new(-1, -1), V2d::new(-1, 1)];
+const N: V2d = V2d::new(0, 1);
+const NE: V2d = V2d::new(1, 1);
+const E: V2d = V2d::new(1, 0);
+const SE: V2d = V2d::new(1, -1);
+const S: V2d = V2d::new(0, -1);
+const SW: V2d = V2d::new(-1, -1);
+const W: V2d = V2d::new(-1, 0);
+const NW: V2d = V2d::new(-1, 1);
+const DIRS: [V2d; 8] = [N, NE, E, SE, S, SW, W, NW];
+const NORTH_DIRS: [V2d; 3] = [N, NE, NW];
+const EAST_DIRS: [V2d; 3] = [E, SE, NE];
+const SOUTH_DIRS: [V2d; 3] = [S, SE, SW];
+const WEST_DIRS: [V2d; 3] = [W, NW, SW];
 
 enum Proposal {
     From(V2d),
@@ -30,26 +28,31 @@ fn parse_elves(s: &str) -> HashSet<V2d> {
                 .enumerate()
                 .filter_map(move |(x, c)| (c == '#').then_some((x, y)))
         })
-        .map(|(x, y)| V2d::new(x as i32, y as i32))
+        .map(|(x, y)| V2d::new(x as i32, -(y as i32)))
         .collect()
 }
-fn calc_empty_tiles_and_rounds(input: &str, max_rounds: usize) -> (i32, usize) {
-    let mut elves = parse_elves(input);
-    let check = [NORTH_DIRS, SOUTH_DIRS, WEST_DIRS, EAST_DIRS];
-    let mut check_start = 0;
+
+fn scatter_elves(elves: &mut HashSet<V2d>, max_rounds: usize) -> (i32, usize) {
+    let check_cyle = [
+        (NORTH_DIRS, N),
+        (SOUTH_DIRS, S),
+        (WEST_DIRS, W),
+        (EAST_DIRS, E),
+    ]
+    .iter()
+    .cycle();
     let mut rounds = 0;
     while rounds < max_rounds {
         let mut moved = false;
         let mut proposals: HashMap<V2d, Proposal> = HashMap::new();
-        // First part; gather proposals.
-        for e in &elves {
+        // First part: Gather proposals.
+        for e in elves.iter() {
             if DIRS.iter().all(|d| !elves.contains(&(e + d))) {
                 continue;
             }
-            for i in 0..4 {
-                let dirs = check[(check_start + i) % check.len()];
+            for (dirs, mov) in check_cyle.clone().skip(rounds % 4).take(4) {
                 if dirs.iter().all(|d| !elves.contains(&(e + d))) {
-                    match proposals.entry(e + dirs[0]) {
+                    match proposals.entry(e + mov) {
                         Entry::Occupied(mut entry) => {
                             entry.insert(Proposal::Crowded);
                         }
@@ -61,7 +64,7 @@ fn calc_empty_tiles_and_rounds(input: &str, max_rounds: usize) -> (i32, usize) {
                 }
             }
         }
-        // Second part; check proposals and move elves.
+        // Second part: Check proposals and move elves.
         for (target, proposal) in &proposals {
             if let Proposal::From(from) = proposal {
                 moved = true;
@@ -73,7 +76,6 @@ fn calc_empty_tiles_and_rounds(input: &str, max_rounds: usize) -> (i32, usize) {
         if !moved {
             break;
         }
-        check_start = (check_start + 1) % check.len();
     }
     let mut max_x = i32::MIN;
     let mut max_y = i32::MIN;
@@ -90,11 +92,11 @@ fn calc_empty_tiles_and_rounds(input: &str, max_rounds: usize) -> (i32, usize) {
 }
 
 pub fn part_1(s: &str) -> i32 {
-    calc_empty_tiles_and_rounds(s, 10).0
+    scatter_elves(&mut parse_elves(s), 10).0
 }
 
 pub fn part_2(s: &str) -> usize {
-    calc_empty_tiles_and_rounds(s, usize::MAX).1
+    scatter_elves(&mut parse_elves(s), usize::MAX).1
 }
 
 #[cfg(test)]
