@@ -18,7 +18,8 @@ pub fn part_1(mut monkeys: Vec<Monkey>) -> u64 {
             }
         }
     }
-    monkeys.sort_by_key(|m| m.inspection_count);
+    let len = monkeys.len();
+    monkeys.select_nth_unstable_by_key(len - 2, |monkey| monkey.inspection_count);
     monkeys[monkeys.len() - 2].inspection_count * monkeys[monkeys.len() - 1].inspection_count
 }
 
@@ -33,13 +34,34 @@ pub fn part_2(mut monkeys: Vec<Monkey>, modulo: u64) -> u64 {
             }
         }
     }
-    monkeys.sort_by_key(|m| m.inspection_count);
-    monkeys[monkeys.len() - 2].inspection_count * monkeys[monkeys.len() - 1].inspection_count
+    let len = monkeys.len();
+    monkeys.select_nth_unstable_by_key(len - 2, |monkey| monkey.inspection_count);
+    monkeys[len - 2].inspection_count * monkeys[len - 1].inspection_count
 }
 
 #[cfg(test)]
 mod tests {
     use crate::day11::*;
+
+    #[test]
+    fn example11_day_part1() {
+        assert_eq!(part_1(example_monkeys()), 10605);
+    }
+    #[test]
+    fn day11_part1() {
+        assert_eq!(part_1(real_monkeys()), 110220);
+    }
+    #[test]
+    fn example11_part2() {
+        assert_eq!(part_2(example_monkeys(), 23 * 19 * 13 * 17), 2713310158);
+    }
+    #[test]
+    fn day11_part2() {
+        assert_eq!(
+            part_2(real_monkeys(), 13 * 19 * 11 * 17 * 3 * 7 * 5 * 2),
+            19457438264
+        );
+    }
 
     fn example_monkeys() -> Vec<Monkey> {
         [
@@ -122,24 +144,5 @@ mod tests {
             },
         ]
         .into()
-    }
-    #[test]
-    fn example11_day_part1() {
-        assert_eq!(part_1(example_monkeys()), 10605);
-    }
-    #[test]
-    fn day11_part1() {
-        assert_eq!(part_1(real_monkeys()), 110220);
-    }
-    #[test]
-    fn example11_part2() {
-        assert_eq!(part_2(example_monkeys(), 23 * 19 * 13 * 17), 2713310158);
-    }
-    #[test]
-    fn day11_part2() {
-        assert_eq!(
-            part_2(real_monkeys(), 13 * 19 * 11 * 17 * 3 * 7 * 5 * 2),
-            19457438264
-        );
     }
 }
