@@ -1,5 +1,3 @@
-use std::cell::Cell;
-
 struct Move {
     count: usize,
     from: usize,
@@ -40,17 +38,19 @@ pub fn part_1(input: &str) -> String {
     String::from_utf8(ans).unwrap()
 }
 
+use std::mem;
 pub fn part_2(input: &str) -> String {
     let (mut stacks, moves) = parse_stacks_and_moves(input);
     for m in moves {
-        // Yikes Rust, two mut ref is hard. v2 with slice of cells instead of split_mut
-        let soc = Cell::from_mut(&mut stacks[..]).as_slice_of_cells();
-        let (mut to, mut from) = (soc[m.to].take(), soc[m.from].take());
-        let len = from.len();
-        to.extend_from_slice(&from[len - m.count..]);
-        from.truncate(len - m.count);
-        soc[m.to].set(to);
-        soc[m.from].set(from);
+        // Yikes Rust, two mut ref is hard. v3 with mem:swap
+        let mut to = Vec::new();
+        let mut from = Vec::new();
+        mem::swap(stacks.get_mut(m.to).unwrap(), &mut to);
+        mem::swap(stacks.get_mut(m.from).unwrap(), &mut from);
+        to.extend_from_slice(&from[from.len() - m.count..]);
+        from.truncate(from.len() - m.count);
+        mem::swap(stacks.get_mut(m.to).unwrap(), &mut to);
+        mem::swap(stacks.get_mut(m.from).unwrap(), &mut from);
     }
     let ans: Vec<u8> = stacks.iter().map(|s| s.last().unwrap()).cloned().collect();
     String::from_utf8(ans).unwrap()
