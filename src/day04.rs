@@ -1,11 +1,13 @@
 use std::ops::RangeInclusive;
-fn range(s: &str) -> RangeInclusive<u32> {
-    let (start, end) = s.split_once('-').unwrap();
-    start.parse().unwrap()..=end.parse().unwrap()
-}
 fn parse_ranges(line: &str) -> (RangeInclusive<u32>, RangeInclusive<u32>) {
-    let (a, b) = line.split_once(',').unwrap();
-    (range(a), range(b))
+    let parse_range = |s: &str| {
+        s.split_once('-')
+            .map(|(s, e)| s.parse().unwrap()..=e.parse().unwrap())
+            .unwrap()
+    };
+    line.split_once(',')
+        .map(|(a, b)| (parse_range(a), parse_range(b)))
+        .unwrap()
 }
 
 pub fn part_1(input: &str) -> u32 {
