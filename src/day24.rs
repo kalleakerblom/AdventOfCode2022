@@ -123,47 +123,46 @@ impl Ord for State {
             .then_with(|| self.time.cmp(&other.time))
     }
 }
-const LIMIT: u32 = 400;
-fn recursive_search(
-    pos: V2d,
-    goal: &V2d,
-    time: i32,
-    tiles: &HashMap<V2d, Tile>,
-    winds: &[Wind],
-    bounds: &WindBounds,
-    visited: &mut HashSet<(V2d, i32)>,
-    best: &mut i32,
-    recursions: u32,
-) {
-    if recursions > LIMIT || !visited.insert((pos, time)) {
-        return;
-    }
-    if pos == *goal {
-        if time < *best {
-            *best = time;
+struct Searcher {
+    goal: V2d,
+    tiles: HashMap<V2d, Tile>,
+    winds: Vec<Wind>,
+    bounds: WindBounds,
+}
+impl Searcher {
+    fn recursive_search(
+        &self,
+        pos: V2d,
+        time: i32,
+        visited: &mut HashSet<(V2d, i32)>,
+        best: &mut i32,
+        recursions: u32,
+    ) {
+        const LIMIT: u32 = 400;
+        if recursions > LIMIT || !visited.insert((pos, time)) {
+            return;
         }
-        return;
-    }
+        if pos == self.goal {
+            if time < *best {
+                *best = time;
+            }
+            return;
+        }
 
-    let mut neighbors = DIRS
-        .iter()
-        .map(|d| pos + d)
-        .filter(|n| matches!(tiles.get(n), Some(Tile::Floor)))
-        .filter(move |n| winds.iter().all(|w| w.pos_at_t(time + 1, bounds) != *n))
-        .collect_vec();
-    neighbors.sort_by_key(|n| n.x.abs_diff(goal.x) + n.y.abs_diff(goal.y));
-    for n in neighbors {
-        recursive_search(
-            n,
-            goal,
-            time + 1,
-            tiles,
-            winds,
-            bounds,
-            visited,
-            best,
-            recursions + 1,
-        );
+        let mut neighbors = DIRS
+            .iter()
+            .map(|d| pos + d)
+            .filter(|n| matches!(self.tiles.get(n), Some(Tile::Floor)))
+            .filter(move |n| {
+                self.winds
+                    .iter()
+                    .all(|w| w.pos_at_t(time + 1, &self.bounds) != *n)
+            })
+            .collect_vec();
+        neighbors.sort_by_key(|n| n.x.abs_diff(self.goal.x) + n.y.abs_diff(self.goal.y));
+        for n in neighbors {
+            self.recursive_search(n, time + 1, visited, best, recursions + 1);
+        }
     }
 }
 
@@ -173,64 +172,39 @@ pub fn part_1(input: &str) -> i32 {
     let start = V2d::new(bounds.x_bounds.0, bounds.y_bounds.1 + 1);
     let mut best = i32::MAX;
     let mut visited = HashSet::new();
-    recursive_search(
-        start,
-        &goal,
-        0,
-        &tiles,
-        &winds,
-        &bounds,
-        &mut visited,
-        &mut best,
-        0,
-    );
+    let searcher = Searcher {
+        goal,
+        tiles,
+        winds,
+        bounds,
+    };
+    searcher.recursive_search(start, 0, &mut visited, &mut best, 0);
     best
 }
+
 pub fn part_2(input: &str) -> i32 {
     let (tiles, winds, bounds) = parse_tiles_and_winds_and_bounds(input);
     let goal = V2d::new(bounds.x_bounds.1, 0);
     let start = V2d::new(bounds.x_bounds.0, bounds.y_bounds.1 + 1);
     let mut best = i32::MAX;
     let mut visited = HashSet::new();
-    recursive_search(
-        start,
-        &goal,
-        0,
-        &tiles,
-        &winds,
-        &bounds,
-        &mut visited,
-        &mut best,
-        0,
-    );
+    let mut searcher = Searcher {
+        goal,
+        tiles,
+        winds,
+        bounds,
+    };
+    searcher.recursive_search(start, 0, &mut visited, &mut best, 0);
     let time2 = best;
     best = i32::MAX;
     visited.clear();
-    recursive_search(
-        goal,
-        &start,
-        time2,
-        &tiles,
-        &winds,
-        &bounds,
-        &mut visited,
-        &mut best,
-        0,
-    );
+    searcher.goal = start;
+    searcher.recursive_search(goal, time2, &mut visited, &mut best, 0);
     let time3 = best;
     best = i32::MAX;
     visited.clear();
-    recursive_search(
-        start,
-        &goal,
-        time3,
-        &tiles,
-        &winds,
-        &bounds,
-        &mut visited,
-        &mut best,
-        0,
-    );
+    searcher.goal = goal;
+    searcher.recursive_search(start, time3, &mut visited, &mut best, 0);
     best
 }
 
