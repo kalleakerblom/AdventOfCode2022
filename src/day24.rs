@@ -1,13 +1,14 @@
 use std::collections::{HashMap, HashSet};
-
-use itertools::Itertools;
 type V2d = cgmath::Vector2<i32>;
+
+#[derive(Clone, Copy)]
 enum Dir {
     N,
     S,
     E,
     W,
 }
+
 const DIRS: [V2d; 5] = [
     V2d::new(0, 1),  //N
     V2d::new(0, -1), //S
@@ -15,6 +16,7 @@ const DIRS: [V2d; 5] = [
     V2d::new(-1, 0), //W
     V2d::new(0, 0),  //Wait
 ];
+#[derive(Clone)]
 struct Wind {
     start: V2d,
     dir: Dir,
@@ -31,7 +33,7 @@ impl Wind {
         };
         Self { start, dir }
     }
-    fn pos_at_t(&self, t: i32, bounds: &WindBounds) -> V2d {
+    fn pos_at_t(&self, t: i32, bounds: &Bounds) -> V2d {
         let x_bounds = bounds.x_bounds;
         let y_bounds = bounds.y_bounds;
         match self.dir {
@@ -59,18 +61,16 @@ impl Wind {
     }
 }
 
-enum Tile {
-    Floor,
-    Wall,
-}
 #[derive(Debug)]
-struct WindBounds {
+struct Bounds {
     x_bounds: (i32, i32),
     y_bounds: (i32, i32),
 }
-fn parse_tiles_and_winds_and_bounds(s: &str) -> (HashMap<V2d, Tile>, Vec<Wind>, WindBounds) {
-    let mut tiles = HashMap::new();
-    let mut winds = Vec::new();
+
+type WindsByCoordinate = HashMap<i32, Vec<Wind>>;
+fn parse_winds_and_bounds(s: &str) -> (WindsByCoordinate, WindsByCoordinate, Bounds) {
+    let mut winds_by_x = WindsByCoordinate::new();
+    let mut winds_by_y = WindsByCoordinate::new();
     let height = s.lines().count();
     for (y, line) in s.lines().enumerate() {
         for (x, c) in line.chars().enumerate() {
@@ -78,56 +78,29 @@ fn parse_tiles_and_winds_and_bounds(s: &str) -> (HashMap<V2d, Tile>, Vec<Wind>, 
             let y = height as i32 - y as i32 - 1;
             let pos = V2d::new(x, y);
             match c {
-                '.' => {
-                    tiles.insert(pos, Tile::Floor);
-                }
-                '#' => {
-                    tiles.insert(pos, Tile::Wall);
-                }
                 w @ '^' | w @ 'v' | w @ '>' | w @ '<' => {
-                    tiles.insert(pos, Tile::Floor);
-                    winds.push(Wind::new(pos, w));
+                    let new_wind = Wind::new(pos, w);
+                    winds_by_x.entry(x).or_default().push(new_wind.clone());
+                    winds_by_y.entry(y).or_default().push(new_wind);
                 }
-                _ => panic!(),
+                _ => (),
             }
         }
     }
     let width = s.lines().next().unwrap().chars().count();
-    let wind_bounds = WindBounds {
+    let bounds = Bounds {
         x_bounds: (1, width as i32 - 2),
         y_bounds: (1, height as i32 - 2),
     };
-    (tiles, winds, wind_bounds)
+    (winds_by_x, winds_by_y, bounds)
 }
 
-#[derive(PartialEq, Eq)]
-struct State {
-    priority: i32,
-    pos: V2d,
-    time: i32,
-}
-
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other
-            .priority
-            .cmp(&self.priority)
-            .then_with(|| self.pos.x.cmp(&other.pos.x))
-            .then_with(|| self.pos.y.cmp(&other.pos.y))
-            .then_with(|| self.time.cmp(&other.time))
-    }
-}
 struct Searcher {
+    start: V2d,
     goal: V2d,
-    tiles: HashMap<V2d, Tile>,
-    winds: Vec<Wind>,
-    bounds: WindBounds,
+    winds_by_x: WindsByCoordinate,
+    winds_by_y: WindsByCoordinate,
+    bounds: Bounds,
 }
 impl Searcher {
     fn recursive_search(
@@ -148,34 +121,43 @@ impl Searcher {
             }
             return;
         }
+        let x_range = self.bounds.x_bounds.0..=self.bounds.x_bounds.1;
+        let y_range = self.bounds.y_bounds.0..=self.bounds.y_bounds.1;
+        let in_bounds = |v: &V2d| x_range.contains(&v.x) && y_range.contains(&v.y);
 
-        let mut neighbors = DIRS
+        let next_moves = DIRS
             .iter()
             .map(|d| pos + d)
-            .filter(|n| matches!(self.tiles.get(n), Some(Tile::Floor)))
+            .filter(|n| in_bounds(n) || *n == self.start || *n == self.goal)
             .filter(move |n| {
-                self.winds
-                    .iter()
-                    .all(|w| w.pos_at_t(time + 1, &self.bounds) != *n)
-            })
-            .collect_vec();
-        neighbors.sort_by_key(|n| n.x.abs_diff(self.goal.x) + n.y.abs_diff(self.goal.y));
-        for n in neighbors {
+                let x_winds = self.winds_by_x.get(&n.x);
+                let y_winds = self.winds_by_y.get(&n.y);
+                let no_winds_here =
+                    |w: &[Wind]| w.iter().all(|w| w.pos_at_t(time + 1, &self.bounds) != *n);
+                match (x_winds, y_winds) {
+                    (None, None) => true,
+                    (None, Some(w)) => no_winds_here(w),
+                    (Some(w), None) => no_winds_here(w),
+                    (Some(wx), Some(wy)) => no_winds_here(wx) && no_winds_here(wy),
+                }
+            });
+        for n in next_moves {
             self.recursive_search(n, time + 1, visited, best, recursions + 1);
         }
     }
 }
 
 pub fn part_1(input: &str) -> i32 {
-    let (tiles, winds, bounds) = parse_tiles_and_winds_and_bounds(input);
+    let (winds_by_x, winds_by_y, bounds) = parse_winds_and_bounds(input);
     let goal = V2d::new(bounds.x_bounds.1, 0);
     let start = V2d::new(bounds.x_bounds.0, bounds.y_bounds.1 + 1);
     let mut best = i32::MAX;
     let mut visited = HashSet::new();
     let searcher = Searcher {
+        start,
         goal,
-        tiles,
-        winds,
+        winds_by_x,
+        winds_by_y,
         bounds,
     };
     searcher.recursive_search(start, 0, &mut visited, &mut best, 0);
@@ -183,26 +165,29 @@ pub fn part_1(input: &str) -> i32 {
 }
 
 pub fn part_2(input: &str) -> i32 {
-    let (tiles, winds, bounds) = parse_tiles_and_winds_and_bounds(input);
+    let (winds_by_x, winds_by_y, bounds) = parse_winds_and_bounds(input);
     let goal = V2d::new(bounds.x_bounds.1, 0);
     let start = V2d::new(bounds.x_bounds.0, bounds.y_bounds.1 + 1);
     let mut best = i32::MAX;
     let mut visited = HashSet::new();
     let mut searcher = Searcher {
+        start,
         goal,
-        tiles,
-        winds,
+        winds_by_x,
+        winds_by_y,
         bounds,
     };
     searcher.recursive_search(start, 0, &mut visited, &mut best, 0);
     let time2 = best;
     best = i32::MAX;
     visited.clear();
+    searcher.start = goal;
     searcher.goal = start;
     searcher.recursive_search(goal, time2, &mut visited, &mut best, 0);
     let time3 = best;
     best = i32::MAX;
     visited.clear();
+    searcher.start = start;
     searcher.goal = goal;
     searcher.recursive_search(start, time3, &mut visited, &mut best, 0);
     best
@@ -217,7 +202,7 @@ mod tests {
         let w = Wind::new(V2d::new(1, 1), '^');
         dbg!(w.pos_at_t(
             9,
-            &WindBounds {
+            &Bounds {
                 x_bounds: (1, 4),
                 y_bounds: (1, 4)
             }
