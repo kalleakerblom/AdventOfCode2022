@@ -9,13 +9,12 @@ enum Dir {
     W,
 }
 
-const DIRS: [V2d; 5] = [
-    V2d::new(0, 1),  //N
-    V2d::new(0, -1), //S
-    V2d::new(1, 0),  //E
-    V2d::new(-1, 0), //W
-    V2d::new(0, 0),  //Wait
-];
+const N: V2d = V2d::new(0, 1);
+const S: V2d = V2d::new(0, -1);
+const E: V2d = V2d::new(1, 0);
+const W: V2d = V2d::new(-1, 0);
+const WAIT: V2d = V2d::new(0, 0);
+
 #[derive(Clone)]
 struct Wind {
     start: V2d,
@@ -38,22 +37,22 @@ impl Wind {
         let y_bounds = bounds.y_bounds;
         match self.dir {
             Dir::N => {
-                let mut p = self.start + t * DIRS[0];
+                let mut p = self.start + t * N;
                 p.y = (p.y - y_bounds.0).rem_euclid(1 + y_bounds.1 - y_bounds.0) + y_bounds.0;
                 p
             }
             Dir::S => {
-                let mut p = self.start + t * DIRS[1];
+                let mut p = self.start + t * S;
                 p.y = (p.y - y_bounds.0).rem_euclid(1 + y_bounds.1 - y_bounds.0) + y_bounds.0;
                 p
             }
             Dir::E => {
-                let mut p = self.start + t * DIRS[2];
+                let mut p = self.start + t * E;
                 p.x = (p.x - x_bounds.0).rem_euclid(1 + x_bounds.1 - x_bounds.0) + x_bounds.0;
                 p
             }
             Dir::W => {
-                let mut p = self.start + t * DIRS[3];
+                let mut p = self.start + t * W;
                 p.x = (p.x - x_bounds.0).rem_euclid(1 + x_bounds.1 - x_bounds.0) + x_bounds.0;
                 p
             }
@@ -102,6 +101,7 @@ struct Searcher {
     winds_by_y: WindsByCoordinate,
     bounds: Bounds,
 }
+
 impl Searcher {
     fn recursive_search(
         &self,
@@ -111,8 +111,7 @@ impl Searcher {
         best: &mut i32,
         recursions: u32,
     ) {
-        const LIMIT: u32 = 400;
-        if recursions > LIMIT || !visited.insert((pos, time)) {
+        if recursions > 400 || !visited.insert((pos, time)) {
             return;
         }
         if pos == self.goal {
@@ -121,19 +120,24 @@ impl Searcher {
             }
             return;
         }
+
         let x_range = self.bounds.x_bounds.0..=self.bounds.x_bounds.1;
         let y_range = self.bounds.y_bounds.0..=self.bounds.y_bounds.1;
         let in_bounds = |v: &V2d| x_range.contains(&v.x) && y_range.contains(&v.y);
 
-        let next_moves = DIRS
+        let next_moves = [N, S, W, E, WAIT]
             .iter()
-            .map(|d| pos + d)
-            .filter(|n| in_bounds(n) || *n == self.start || *n == self.goal)
-            .filter(move |n| {
-                let x_winds = self.winds_by_x.get(&n.x);
-                let y_winds = self.winds_by_y.get(&n.y);
-                let no_winds_here =
-                    |w: &[Wind]| w.iter().all(|w| w.pos_at_t(time + 1, &self.bounds) != *n);
+            .map(|dir| pos + dir)
+            .filter(move |next| {
+                if !(in_bounds(next) || *next == self.start || *next == self.goal) {
+                    return false;
+                }
+                let x_winds = self.winds_by_x.get(&next.x);
+                let y_winds = self.winds_by_y.get(&next.y);
+                let no_winds_here = |w: &[Wind]| {
+                    w.iter()
+                        .all(|w| w.pos_at_t(time + 1, &self.bounds) != *next)
+                };
                 match (x_winds, y_winds) {
                     (None, None) => true,
                     (None, Some(w)) => no_winds_here(w),
