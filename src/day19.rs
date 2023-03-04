@@ -1,6 +1,6 @@
 use derive_more::{Add, AddAssign, From, SubAssign};
 use scan_fmt::scan_fmt;
-use std::{cmp, collections::HashMap};
+use std::collections::HashMap;
 #[derive(
     Clone, Copy, Default, Hash, PartialEq, Eq, From, AddAssign, Add, SubAssign, PartialOrd, Ord,
 )]
@@ -18,7 +18,7 @@ struct Obs(u16);
 )]
 struct Geo(u16);
 
-struct Bp {
+struct Blueprint {
     ore_bot_cost: Ore,
     clay_bot_cost: Ore,
     obs_bot_cost: (Ore, Clay),
@@ -36,7 +36,7 @@ struct State {
     geo: Geo,
 }
 
-impl Bp {
+impl Blueprint {
     fn parse(s: &str) -> Self {
         let (_id, ob_cost, cb_cost, obs_cost_ore, obs_cost_clay, geo_cost_ore, geo_cost_obs) =
             scan_fmt!(s, "Blueprint {}: Each ore robot costs {} ore. Each clay robot costs {} ore. Each obsidian robot costs {} ore and {} clay. Each geode robot costs {} ore and {} obsidian.", u16,u16, u16, u16, u16, u16, u16).unwrap();
@@ -50,119 +50,122 @@ impl Bp {
 }
 // NOTE: Seems to have no gains over ~15, weird.
 const CACHE_TIME: u16 = 15;
-fn play(
-    bp: &Bp,
-    mut state: State,
-    time: u16,
-    best: &mut Geo,
-    memo: &mut HashMap<(u16, State), Geo>,
-) {
-    if time == 0 {
-        *best = cmp::max(*best, state.geo);
-        return;
+struct DepthSearcher {
+    bp: Blueprint,
+    memo: HashMap<(u16, State), Geo>,
+    best: Geo,
+    max_costs: (Ore, Clay, Obs),
+}
+impl DepthSearcher {
+    fn new(bp: Blueprint) -> Self {
+        let max_ore_cost = bp
+            .clay_bot_cost
+            .max(bp.obs_bot_cost.0.max(bp.geo_bot_cost.0));
+        let max_costs = (max_ore_cost, bp.obs_bot_cost.1, bp.geo_bot_cost.1);
+        Self {
+            bp,
+            memo: HashMap::new(),
+            best: Geo(0),
+            max_costs,
+        }
     }
-    //collect
-    state.ore += state.ore_bot;
-    state.clay += state.clay_bot;
-    state.obs += state.obs_bot;
-    state.geo += state.geo_bot;
-    if time < CACHE_TIME && memo.contains_key(&(time, state)) {
-        return;
-    }
-    // try all spends
-    //GeoBot
-    if state.ore >= bp.geo_bot_cost.0 + state.ore_bot
-        && state.obs >= bp.geo_bot_cost.1 + state.obs_bot
-    {
-        let mut new_state = state;
-        new_state.ore -= bp.geo_bot_cost.0;
-        new_state.obs -= bp.geo_bot_cost.1;
-        new_state.geo_bot += 1.into();
-        play(bp, new_state, time - 1, best, memo);
+    fn search(&mut self, mut state: State, time: u16) {
+        if time == 0 {
+            self.best = self.best.max(state.geo);
+            return;
+        }
+        // Collect
+        state.ore += state.ore_bot;
+        state.clay += state.clay_bot;
+        state.obs += state.obs_bot;
+        state.geo += state.geo_bot;
+        if time < CACHE_TIME && self.memo.contains_key(&(time, state)) {
+            return;
+        }
+        // Try building GeoBot
+        if state.ore >= self.bp.geo_bot_cost.0 + state.ore_bot
+            && state.obs >= self.bp.geo_bot_cost.1 + state.obs_bot
+        {
+            let mut new_state = state;
+            new_state.ore -= self.bp.geo_bot_cost.0;
+            new_state.obs -= self.bp.geo_bot_cost.1;
+            new_state.geo_bot += 1.into();
+            self.search(new_state, time - 1);
+            // cache best
+            if time < CACHE_TIME {
+                self.memo.insert((time, state), self.best);
+            }
+            // Early return; building GeoBot is always right if possible.
+            return;
+        }
+        // Try building ObsBot
+        if state.ore >= self.bp.obs_bot_cost.0 + state.ore_bot
+            && state.clay >= self.bp.obs_bot_cost.1 + state.clay_bot
+            && state.obs_bot < self.max_costs.2
+        {
+            let mut new_state = state;
+            new_state.ore -= self.bp.obs_bot_cost.0;
+            new_state.clay -= self.bp.obs_bot_cost.1;
+            new_state.obs_bot += 1.into();
+            self.search(new_state, time - 1);
+        }
+        // Try building ClayBot
+        if state.ore >= self.bp.clay_bot_cost + state.ore_bot && state.clay_bot < self.max_costs.1 {
+            let mut new_state = state;
+            new_state.ore -= self.bp.clay_bot_cost;
+            new_state.clay_bot += 1.into();
+            self.search(new_state, time - 1);
+        }
+        // Try building OreBot
+        if state.ore >= self.bp.ore_bot_cost + state.ore_bot && state.ore_bot < self.max_costs.0 {
+            let mut new_state = state;
+            new_state.ore -= self.bp.ore_bot_cost;
+            new_state.ore_bot += 1.into();
+            self.search(new_state, time - 1);
+        }
+        // Try building no bot
+        self.search(state, time - 1);
         // cache best
         if time < CACHE_TIME {
-            memo.insert((time, state), *best);
+            self.memo.insert((time, state), self.best);
         }
-        return;
-    }
-
-    // ObsBot
-    if state.ore >= bp.obs_bot_cost.0 + state.ore_bot
-        && state.clay >= bp.obs_bot_cost.1 + state.clay_bot
-        && state.obs_bot < bp.geo_bot_cost.1
-    {
-        let mut new_state = state;
-        new_state.ore -= bp.obs_bot_cost.0;
-        new_state.clay -= bp.obs_bot_cost.1;
-        new_state.obs_bot += 1.into();
-        play(bp, new_state, time - 1, best, memo);
-    }
-    //ClayBot
-    if state.ore >= bp.clay_bot_cost + state.ore_bot && state.clay_bot < bp.obs_bot_cost.1 {
-        let mut new_state = state;
-        new_state.ore -= bp.clay_bot_cost;
-        new_state.clay_bot += 1.into();
-        play(bp, new_state, time - 1, best, memo);
-    }
-    // OreBot
-    let max_ore_cost = bp
-        .clay_bot_cost
-        .max(bp.obs_bot_cost.0.max(bp.geo_bot_cost.0));
-    if state.ore >= bp.ore_bot_cost + state.ore_bot && state.ore_bot < max_ore_cost {
-        let mut new_state = state;
-        new_state.ore -= bp.ore_bot_cost;
-        new_state.ore_bot += 1.into();
-        play(bp, new_state, time - 1, best, memo);
-    }
-    // No bot built
-    play(bp, state, time - 1, best, memo);
-    // cache best
-    if time < CACHE_TIME {
-        memo.insert((time, state), *best);
     }
 }
 
 pub fn part_1(input: &str) -> usize {
-    let blueprints: Vec<_> = input.lines().map(Bp::parse).collect();
+    let blueprints = input.lines().map(Blueprint::parse);
     blueprints
-        .iter()
+        .into_iter()
         .enumerate()
         .map(|(id, bp)| {
-            let mut best = 0.into();
-            let mut memo = HashMap::new();
-            play(
-                bp,
+            let mut dfs = DepthSearcher::new(bp);
+            dfs.search(
                 State {
                     ore_bot: 1.into(),
                     ..Default::default()
                 },
                 24,
-                &mut best,
-                &mut memo,
             );
-            (id + 1) * best.0 as usize
+            (id + 1) * dfs.best.0 as usize
         })
         .sum()
 }
+
 pub fn part_2(input: &str) -> usize {
-    let blueprints: Vec<_> = input.lines().map(Bp::parse).collect();
+    let blueprints = input.lines().map(Blueprint::parse);
     blueprints
-        .iter()
+        .into_iter()
         .take(3)
         .map(|bp| {
-            let mut best = 0.into();
-            let mut memo = HashMap::new();
-            play(
-                bp,
+            let mut dfs = DepthSearcher::new(bp);
+            dfs.search(
                 State {
                     ore_bot: 1.into(),
                     ..Default::default()
                 },
                 32,
-                &mut best,
-                &mut memo,
             );
-            best.0 as usize
+            dfs.best.0 as usize
         })
         .product()
 }
