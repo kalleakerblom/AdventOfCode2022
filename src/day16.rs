@@ -1,6 +1,5 @@
-use core::time;
 use im::HashSet;
-use std::{cmp, collections::HashMap};
+use std::{cell::Cell, collections::HashMap};
 type Id = u16;
 const AA_ID: Id = b'A' as u16 * b'A' as u16;
 
@@ -104,90 +103,79 @@ pub fn part_1(input: &str) -> u32 {
 }
 
 ///////////////// part 2
-fn recursive_make_plan_part2(
-    current: Id,
-    mut visited: HashSet<Id>,
-    score: u32,
-    other_score: Option<u32>,
-    time_left: u32,
-    flow_map: &HashMap<Id, u32>,
-    travel: &HashMap<Id, HashMap<Id, u32>>,
-    best: &mut u32,
-) {
-    visited.insert(current);
-    if time_left == 0 {
-        if let Some(other_score) = other_score {
-            // end of elephant plan, add up the score
-            let total_score = score + other_score;
-            if total_score > *best {
-                *best = total_score;
+struct DfsFlowPlanPart2<'a> {
+    flow_map: &'a HashMap<Id, u32>,
+    travel_map: &'a HashMap<Id, HashMap<Id, u32>>,
+    best: Cell<u32>,
+}
+
+impl<'a> DfsFlowPlanPart2<'a> {
+    fn search(
+        &self,
+        current_id: Id,
+        mut visited: HashSet<Id>,
+        score: u32,
+        other_score: Option<u32>,
+        time_left: u32,
+    ) {
+        visited.insert(current_id);
+        if time_left == 0 {
+            if let Some(other_score) = other_score {
+                // end of elephant plan, add up the score
+                let total_score = score + other_score;
+                if total_score > self.best.get() {
+                    self.best.set(total_score);
+                }
+                return;
+            } else {
+                //start elephant plan
+                let elephant_dfs = DfsFlowPlanPart2 {
+                    flow_map: self.flow_map,
+                    travel_map: self.travel_map,
+                    best: Cell::new(0),
+                };
+                elephant_dfs.search(AA_ID, visited, 0, Some(score), 26);
+                if elephant_dfs.best > self.best {
+                    self.best.set(elephant_dfs.best.get());
+                }
+                return;
             }
-            return;
-        } else {
-            //start elephant plan
-            recursive_make_plan_part2(
-                AA_ID,
+        }
+        for (next, flow) in self.flow_map.iter() {
+            if *flow == 0 {
+                continue;
+            }
+            if visited.contains(next) {
+                continue;
+            }
+            let time_cost = self.travel_map[&current_id][next] + 1;
+            if time_cost >= time_left {
+                continue;
+            }
+            let value = flow * (time_left - time_cost);
+            self.search(
+                *next,
                 visited.clone(),
-                0,
-                Some(score),
-                26,
-                flow_map,
-                travel,
-                best,
+                score + value,
+                other_score,
+                time_left - time_cost,
             );
-            return;
         }
+        self.search(current_id, visited, score, other_score, 0);
     }
-    for (next, flow) in flow_map.iter() {
-        if *flow == 0 {
-            continue;
-        }
-        if visited.contains(next) {
-            continue;
-        }
-        let time_cost = travel[&current][next] + 1;
-        if time_cost >= time_left {
-            continue;
-        }
-        let value = flow_map[next] * (time_left - time_cost);
-        recursive_make_plan_part2(
-            *next,
-            visited.clone(),
-            score + value,
-            other_score,
-            time_left - time_cost,
-            flow_map,
-            travel,
-            best,
-        );
-    }
-    recursive_make_plan_part2(
-        current,
-        visited,
-        score,
-        other_score,
-        0,
-        flow_map,
-        travel,
-        best,
-    );
 }
 
 pub fn part_2(input: &str) -> u32 {
-    let (flow_map, mut travel) = get_flow_and_travel_maps(input);
-    expand_travel_map(&mut travel, &flow_map);
-    let mut best = 0;
-    recursive_make_plan_part2(
-        AA_ID,
-        HashSet::new(),
-        0,
-        None,
-        26,
-        &flow_map,
-        &travel,
-        &mut best,
-    );
-    best
+    let (mut flow_map, mut travel_map) = get_flow_and_travel_maps(input);
+    expand_travel_map(&mut travel_map, &flow_map);
+    flow_map.retain(|_, v| *v != 0);
+    let dfs = DfsFlowPlanPart2 {
+        flow_map: &flow_map,
+        travel_map: &travel_map,
+        best: Cell::new(0),
+    };
+    dfs.search(AA_ID, HashSet::new(), 0, None, 26);
+    dfs.best.get()
 }
 
 #[cfg(test)]
