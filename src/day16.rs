@@ -1,3 +1,4 @@
+use core::time;
 use im::HashSet;
 use std::{cmp, collections::HashMap};
 type Id = u16;
@@ -62,47 +63,44 @@ fn expand_travel_map(map: &mut HashMap<Id, HashMap<Id, u32>>, flow: &HashMap<Id,
         }
     }
 }
+struct DfsFlowPlan {
+    flow_map: HashMap<Id, u32>,
+    travel_map: HashMap<Id, HashMap<Id, u32>>,
+}
 
-fn recursive_best_plan(
-    current: Id,
-    mut visited: HashSet<Id>,
-    pressure: u32,
-    time_left: u32,
-    flow_map: &HashMap<Id, u32>,
-    travel: &HashMap<Id, HashMap<Id, u32>>,
-) -> u32 {
-    visited.insert(current);
-    let mut best = pressure;
-    for (next, flow) in flow_map.iter() {
-        if *flow == 0 {
-            continue;
+impl DfsFlowPlan {
+    fn search(&self, current: Id, mut visited: HashSet<Id>, pressure: u32, time_left: u32) -> u32 {
+        visited.insert(current);
+        let mut best_pressure = pressure;
+        for (next, flow) in self.flow_map.iter() {
+            if *flow == 0 || visited.contains(next) {
+                continue;
+            }
+            let time_cost = self.travel_map[&current][next] + 1;
+            let value = time_left.saturating_sub(time_cost) * self.flow_map[next];
+            if value == 0 {
+                continue;
+            }
+            let candidate = self.search(
+                *next,
+                visited.clone(),
+                pressure + value,
+                time_left.saturating_sub(time_cost),
+            );
+            best_pressure = best_pressure.max(candidate);
         }
-        if visited.contains(next) {
-            continue;
-        }
-        let time_cost = travel[&current][next] + 1;
-        let value = time_left.saturating_sub(time_cost) * flow_map[next];
-        if value == 0 {
-            continue;
-        }
-        let candidate = recursive_best_plan(
-            *next,
-            visited.clone(),
-            pressure + value,
-            time_left.saturating_sub(time_cost),
-            flow_map,
-            travel,
-        );
-        best = cmp::max(best, candidate);
+        best_pressure
     }
-
-    best
 }
 
 pub fn part_1(input: &str) -> u32 {
-    let (flow, mut travel) = get_flow_and_travel_maps(input);
-    expand_travel_map(&mut travel, &flow);
-    recursive_best_plan(AA_ID, HashSet::new(), 0, 30, &flow, &travel)
+    let (flow_map, mut travel_map) = get_flow_and_travel_maps(input);
+    expand_travel_map(&mut travel_map, &flow_map);
+    let dfs = DfsFlowPlan {
+        travel_map,
+        flow_map,
+    };
+    dfs.search(AA_ID, HashSet::new(), 0, 30)
 }
 
 ///////////////// part 2
