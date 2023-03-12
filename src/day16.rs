@@ -1,3 +1,4 @@
+use bitvec::prelude::*;
 use im::HashSet;
 use std::{cell::Cell, collections::HashMap};
 type Id = u16;
@@ -64,7 +65,7 @@ fn expand_travel_map(map: &mut HashMap<Id, HashMap<Id, u32>>, flow: &HashMap<Id,
 }
 struct DfsFlowPlan {
     flow_map: HashMap<Id, u32>,
-    travel_map: HashMap<Id, HashMap<Id, u32>>,
+    travel_map: HashMap<(Id, Id), u32>,
 }
 
 impl DfsFlowPlan {
@@ -75,7 +76,7 @@ impl DfsFlowPlan {
             if *flow == 0 || visited.contains(next) {
                 continue;
             }
-            let time_cost = self.travel_map[&current][next] + 1;
+            let time_cost = self.travel_map[&(current, *next)] + 1;
             let value = time_left.saturating_sub(time_cost) * self.flow_map[next];
             if value == 0 {
                 continue;
@@ -95,6 +96,10 @@ impl DfsFlowPlan {
 pub fn part_1(input: &str) -> u32 {
     let (flow_map, mut travel_map) = get_flow_and_travel_maps(input);
     expand_travel_map(&mut travel_map, &flow_map);
+    let travel_map: HashMap<(Id, Id), u32> = travel_map
+        .iter()
+        .flat_map(|(&id_a, inner)| inner.iter().map(move |(id_b, time)| ((id_a, *id_b), *time)))
+        .collect();
     let dfs = DfsFlowPlan {
         travel_map,
         flow_map,
@@ -105,7 +110,8 @@ pub fn part_1(input: &str) -> u32 {
 ///////////////// part 2
 struct DfsFlowPlanPart2<'a> {
     flow_map: &'a HashMap<Id, u32>,
-    travel_map: &'a HashMap<Id, HashMap<Id, u32>>,
+    travel_map: &'a HashMap<(Id, Id), u32>,
+    valve_map: &'a HashMap<Id, u8>,
     best: Cell<u32>,
 }
 
@@ -113,12 +119,13 @@ impl<'a> DfsFlowPlanPart2<'a> {
     fn search(
         &self,
         current_id: Id,
-        mut visited: HashSet<Id>,
+        mut visited: bitvec::array::BitArray,
         score: u32,
         other_score: Option<u32>,
         time_left: u32,
     ) {
-        visited.insert(current_id);
+        let valve_index = self.valve_map[&current_id];
+        visited.set(valve_index as usize, true);
         if time_left == 0 {
             if let Some(other_score) = other_score {
                 // end of elephant plan, add up the score
@@ -132,6 +139,7 @@ impl<'a> DfsFlowPlanPart2<'a> {
                 let elephant_dfs = DfsFlowPlanPart2 {
                     flow_map: self.flow_map,
                     travel_map: self.travel_map,
+                    valve_map: self.valve_map,
                     best: Cell::new(0),
                 };
                 elephant_dfs.search(AA_ID, visited, 0, Some(score), 26);
@@ -145,17 +153,18 @@ impl<'a> DfsFlowPlanPart2<'a> {
             if *flow == 0 {
                 continue;
             }
-            if visited.contains(next) {
+            let next_index = self.valve_map[next];
+            if *visited.get(next_index as usize).unwrap() {
                 continue;
             }
-            let time_cost = self.travel_map[&current_id][next] + 1;
+            let time_cost = self.travel_map[&(current_id, *next)] + 1;
             if time_cost >= time_left {
                 continue;
             }
             let value = flow * (time_left - time_cost);
             self.search(
                 *next,
-                visited.clone(),
+                visited,
                 score + value,
                 other_score,
                 time_left - time_cost,
@@ -168,13 +177,23 @@ impl<'a> DfsFlowPlanPart2<'a> {
 pub fn part_2(input: &str) -> u32 {
     let (mut flow_map, mut travel_map) = get_flow_and_travel_maps(input);
     expand_travel_map(&mut travel_map, &flow_map);
+    let travel_map: HashMap<(Id, Id), u32> = travel_map
+        .iter()
+        .flat_map(|(&id_a, inner)| inner.iter().map(move |(id_b, time)| ((id_a, *id_b), *time)))
+        .collect();
+    let valve_map = flow_map
+        .keys()
+        .enumerate()
+        .map(|(i, valve)| (*valve, i as u8))
+        .collect();
     flow_map.retain(|_, v| *v != 0);
     let dfs = DfsFlowPlanPart2 {
         flow_map: &flow_map,
         travel_map: &travel_map,
+        valve_map: &valve_map,
         best: Cell::new(0),
     };
-    dfs.search(AA_ID, HashSet::new(), 0, None, 26);
+    dfs.search(AA_ID, bitarr![0; 16], 0, None, 26);
     dfs.best.get()
 }
 
