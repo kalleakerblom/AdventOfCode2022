@@ -123,9 +123,13 @@ impl<'a> DfsFlowPlanPart2<'a> {
         score: u32,
         other_score: Option<u32>,
         time_left: u32,
+        memo: &mut std::collections::HashSet<(Id, u32, Option<u32>, bitvec::array::BitArray)>,
     ) {
         let valve_index = self.valve_map[&current_id];
         visited.set(valve_index as usize, true);
+        if !memo.insert((current_id, time_left, other_score, visited)) {
+            return;
+        }
         if time_left == 0 {
             if let Some(other_score) = other_score {
                 // end of elephant plan, add up the score
@@ -142,7 +146,7 @@ impl<'a> DfsFlowPlanPart2<'a> {
                     valve_map: self.valve_map,
                     best: Cell::new(0),
                 };
-                elephant_dfs.search(AA_ID, visited, 0, Some(score), 26);
+                elephant_dfs.search(AA_ID, visited, 0, Some(score), 26, memo);
                 if elephant_dfs.best > self.best {
                     self.best.set(elephant_dfs.best.get());
                 }
@@ -168,9 +172,10 @@ impl<'a> DfsFlowPlanPart2<'a> {
                 score + value,
                 other_score,
                 time_left - time_cost,
+                memo,
             );
         }
-        self.search(current_id, visited, score, other_score, 0);
+        self.search(current_id, visited, score, other_score, 0, memo);
     }
 }
 
@@ -193,7 +198,14 @@ pub fn part_2(input: &str) -> u32 {
         valve_map: &valve_map,
         best: Cell::new(0),
     };
-    dfs.search(AA_ID, bitarr![0; 16], 0, None, 26);
+    dfs.search(
+        AA_ID,
+        bitarr![0; 16],
+        0,
+        None,
+        26,
+        &mut std::collections::HashSet::new(),
+    );
     dfs.best.get()
 }
 
