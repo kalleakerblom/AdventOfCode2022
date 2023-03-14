@@ -1,6 +1,6 @@
 use derive_more::{Add, AddAssign, From, SubAssign};
 use scan_fmt::scan_fmt;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 #[derive(
     Clone, Copy, Default, Hash, PartialEq, Eq, From, AddAssign, Add, SubAssign, PartialOrd, Ord,
 )]
@@ -52,7 +52,7 @@ impl Blueprint {
 const CACHE_TIME: u16 = 15;
 struct DepthSearcher {
     bp: Blueprint,
-    memo: HashMap<(u16, State), Geo>,
+    visited: HashSet<(u16, State)>,
     best: Geo,
     max_costs: (Ore, Clay, Obs),
 }
@@ -64,7 +64,7 @@ impl DepthSearcher {
         let max_costs = (max_ore_cost, bp.obs_bot_cost.1, bp.geo_bot_cost.1);
         Self {
             bp,
-            memo: HashMap::new(),
+            visited: HashSet::new(),
             best: Geo(0),
             max_costs,
         }
@@ -79,7 +79,7 @@ impl DepthSearcher {
         state.clay += state.clay_bot;
         state.obs += state.obs_bot;
         state.geo += state.geo_bot;
-        if time < CACHE_TIME && self.memo.contains_key(&(time, state)) {
+        if time < CACHE_TIME && self.visited.contains(&(time, state)) {
             return;
         }
         // Try building GeoBot
@@ -93,7 +93,7 @@ impl DepthSearcher {
             self.search(new_state, time - 1);
             // cache best
             if time < CACHE_TIME {
-                self.memo.insert((time, state), self.best);
+                self.visited.insert((time, state));
             }
             // Early return; building GeoBot is always right if possible.
             return;
@@ -127,7 +127,7 @@ impl DepthSearcher {
         self.search(state, time - 1);
         // cache best
         if time < CACHE_TIME {
-            self.memo.insert((time, state), self.best);
+            self.visited.insert((time, state));
         }
     }
 }
